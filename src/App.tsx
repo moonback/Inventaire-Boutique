@@ -3,11 +3,17 @@ import { Scanner } from './components/Scanner';
 import { ManualInput } from './components/ManualInput';
 import { InventoryGrid } from './components/InventoryGrid';
 import { ManualProductModal } from './components/ManualProductModal';
+import { QuantityModal } from './components/QuantityModal';
 import { Toast } from './components/Toast';
 import { InventoryItem } from './types';
 import { getProductData } from './api';
 import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2 } from 'lucide-react';
 import { useHardwareScanner } from './hooks/useHardwareScanner';
+
+type ActionModalState = 
+  | { type: 'quantity'; product: { barcode: string; name: string; imageUrl?: string; brand?: string; category?: string }; existingQty: number; isNew: boolean }
+  | { type: 'manual'; barcode: string }
+  | null;
 
 export default function App() {
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
@@ -16,7 +22,7 @@ export default function App() {
   });
   
   const [scanningMode, setScanningMode] = useState<'manual' | 'camera'>('manual');
-  const [productToCreate, setProductToCreate] = useState<string | null>(null);
+  const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string, id: number } | null>(null);
 
@@ -32,18 +38,19 @@ export default function App() {
   };
 
   const handleScan = useCallback(async (barcode: string) => {
-    if (!barcode || loadingBarcode || productToCreate) return;
+    if (!barcode || loadingBarcode || actionModal) return;
     
     setLoadingBarcode(barcode);
 
     // Check if already in inventory
     const existingIndex = inventory.findIndex(i => i.barcode === barcode);
     if (existingIndex >= 0) {
-      const newInventory = [...inventory];
-      newInventory[existingIndex].quantity += 1;
-      newInventory[existingIndex].lastUpdated = Date.now();
-      setInventory(newInventory);
-      showToast(`+1 ${newInventory[existingIndex].name}`);
+      setActionModal({
+        type: 'quantity',
+        product: inventory[existingIndex],
+        existingQty: inventory[existingIndex].quantity,
+        isNew: false
+      });
       setLoadingBarcode(null);
       return;
     }
@@ -51,23 +58,22 @@ export default function App() {
     // Not in inventory, fetch from API
     const data = await getProductData(barcode);
     if (data) {
-      setInventory(prev => [{
-        barcode,
-        name: data.name,
-        quantity: 1,
-        imageUrl: data.imageUrl,
-        brand: data.brand,
-        category: data.category,
-        lastUpdated: Date.now()
-      }, ...prev]);
-      showToast(`Ajouté: ${data.name}`);
+      setActionModal({
+        type: 'quantity',
+        product: { barcode, ...data },
+        existingQty: 0,
+        isNew: true
+      });
     } else {
       // Not found, open manual creation modal
-      setProductToCreate(barcode);
+      setActionModal({
+        type: 'manual',
+        barcode: barcode
+      });
     }
     
     setLoadingBarcode(null);
-  }, [inventory, loadingBarcode, productToCreate]);
+  }, [inventory, loadingBarcode, actionModal]);
 
   // Hook for physical hardware scanners globally
   useHardwareScanner(handleScan);
@@ -88,17 +94,47 @@ export default function App() {
     }
   };
 
-  const handleManualProductSave = (name: string) => {
-    if (productToCreate) {
+  const handleManualProductSave = (name: string, quantity: number) => {
+    if (actionModal?.type === 'manual') {
       setInventory(prev => [{
-        barcode: productToCreate,
+        barcode: actionModal.barcode,
         name,
-        quantity: 1,
+        quantity,
         lastUpdated: Date.now()
       }, ...prev]);
-      showToast(`Ajouté: ${name}`);
+      showToast(`Ajouté: ${name} (x${quantity})`);
     }
-    setProductToCreate(null);
+    setActionModal(null);
+  };
+
+  const handleQuantitySave = (quantityToAdd: number) => {
+    if (actionModal?.type === 'quantity') {
+      const { product, isNew } = actionModal;
+      
+      setInventory(prev => {
+        if (isNew) {
+          return [{
+            ...product, // Need to cast or construct properly
+            barcode: product.barcode,
+            name: product.name,
+            imageUrl: product.imageUrl,
+            brand: product.brand,
+            category: product.category,
+            quantity: quantityToAdd,
+            lastUpdated: Date.now()
+          }, ...prev];
+        } else {
+          return prev.map(item => {
+            if (item.barcode === product.barcode) {
+              return { ...item, quantity: item.quantity + quantityToAdd, lastUpdated: Date.now() };
+            }
+            return item;
+          });
+        }
+      });
+      showToast(`+${quantityToAdd} ${product.name}`);
+    }
+    setActionModal(null);
   };
 
   const handleExport = () => {
@@ -211,11 +247,21 @@ export default function App() {
       </main>
 
       {/* Modals & Toasts */}
-      {productToCreate && (
+      {actionModal?.type === 'manual' && (
         <ManualProductModal
-          barcode={productToCreate}
+          barcode={actionModal.barcode}
           onSave={handleManualProductSave}
-          onCancel={() => setProductToCreate(null)}
+          onCancel={() => setActionModal(null)}
+        />
+      )}
+      
+      {actionModal?.type === 'quantity' && (
+        <QuantityModal
+          product={actionModal.product}
+          existingQty={actionModal.existingQty}
+          isNew={actionModal.isNew}
+          onSave={handleQuantitySave}
+          onCancel={() => setActionModal(null)}
         />
       )}
 
