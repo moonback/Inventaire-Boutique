@@ -1,0 +1,6 @@
+{
+  "name": "Inventaire Boutique",
+  "description": "Application d'inventaire avec scanner EAN-13 et intégration OpenFoodFacts",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
