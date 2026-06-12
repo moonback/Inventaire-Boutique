@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Scanner } from './components/Scanner';
 import { ManualInput } from './components/ManualInput';
 import { InventoryGrid } from './components/InventoryGrid';
@@ -7,7 +7,7 @@ import { QuantityModal } from './components/QuantityModal';
 import { Toast } from './components/Toast';
 import { InventoryItem } from './types';
 import { getProductData } from './api';
-import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2 } from 'lucide-react';
+import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2, Search, Filter } from 'lucide-react';
 import { useHardwareScanner } from './hooks/useHardwareScanner';
 
 type ActionModalState = 
@@ -25,6 +25,10 @@ export default function App() {
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string, id: number } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'quantityAsc' | 'quantityDesc'>('recent');
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('inventory', JSON.stringify(inventory));
@@ -153,6 +157,33 @@ export default function App() {
 
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
 
+  const filteredInventory = useMemo(() => {
+    let result = [...inventory];
+    
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      result = result.filter(i => 
+        i.name.toLowerCase().includes(lower) || 
+        i.barcode.includes(lower) || 
+        (i.brand && i.brand.toLowerCase().includes(lower)) ||
+        (i.category && i.category.toLowerCase().includes(lower))
+      );
+    }
+
+    if (showLowStockOnly) {
+      result = result.filter(i => i.quantity <= 5);
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'quantityAsc') return a.quantity - b.quantity;
+      if (sortBy === 'quantityDesc') return b.quantity - a.quantity;
+      return b.lastUpdated - a.lastUpdated;
+    });
+
+    return result;
+  }, [inventory, searchTerm, showLowStockOnly, sortBy]);
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100 selection:text-blue-900 pb-20">
       {/* Header */}
@@ -217,29 +248,79 @@ export default function App() {
              )}
             
             {scanningMode === 'manual' ? (
-              <ManualInput onScan={handleScan} />
+              <ManualInput onScan={handleScan} isActive={!loadingBarcode && !actionModal} />
             ) : (
-              <Scanner onScan={handleScan} />
+              <Scanner onScan={handleScan} isActive={!loadingBarcode && !actionModal} />
             )}
           </div>
         </section>
 
         {/* Inventory Section */}
         <section>
-          <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-4">
-            <h2 className="text-lg font-bold text-gray-900">Articles en stock</h2>
-            {inventory.length > 0 && (
-              <button
-                onClick={handleExport}
-                className="sm:hidden flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm"
-              >
-                <Download className="w-4 h-4" /> Export
-              </button>
+          <div className="flex flex-col gap-4 mb-6 border-b border-gray-200 pb-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Articles en stock</h2>
+              <div className="flex w-full sm:w-auto items-center gap-2">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher un produit..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center justify-center p-2 rounded-xl border transition-all ${
+                    showFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title="Filtres avancés"
+                >
+                  <Filter className="w-5 h-5" />
+                </button>
+                {inventory.length > 0 && (
+                  <button
+                    onClick={handleExport}
+                    className="sm:hidden flex-shrink-0 flex items-center gap-2 p-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="flex flex-wrap items-center gap-6 bg-gray-50 p-4 rounded-xl border border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Trier par :</label>
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as any)}
+                    className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none cursor-pointer"
+                  >
+                    <option value="recent">Date d'ajout</option>
+                    <option value="name">Alphabétique (A-Z)</option>
+                    <option value="quantityAsc">Quantité (Croissante)</option>
+                    <option value="quantityDesc">Quantité (Décroissante)</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={showLowStockOnly}
+                    onChange={e => setShowLowStockOnly(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Stock faible uniquement (≤ 5)</span>
+                </label>
+              </div>
             )}
           </div>
           
           <InventoryGrid 
-            items={inventory} 
+            items={filteredInventory} 
             onUpdateQuantity={handleUpdateQuantity}
             onRemove={handleRemoveItem}
           />

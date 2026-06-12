@@ -3,11 +3,19 @@ import { useEffect, useRef } from 'react';
 
 interface ScannerProps {
   onScan: (decodedText: string) => void;
+  isActive: boolean;
 }
 
-export function Scanner({ onScan }: ScannerProps) {
+export function Scanner({ onScan, isActive }: ScannerProps) {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const containerId = "reader";
+  const lastScanned = useRef<string>('');
+  const lastScanTime = useRef<number>(0);
+  const isActiveRef = useRef(isActive);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     // Configuration to prefer EAN-13
@@ -28,8 +36,22 @@ export function Scanner({ onScan }: ScannerProps) {
       scannerRef.current = new Html5QrcodeScanner(containerId, config, false);
       scannerRef.current.render(
         (decodedText) => {
-          onScan(decodedText);
-          // Optional: we can pause here, but let's let the parent manage state.
+          if (!isActiveRef.current) {
+            // Modal is open, ignore scan but reset the continuous timer for the same barcode
+            if (decodedText === lastScanned.current) {
+               lastScanTime.current = Date.now();
+            }
+            return;
+          }
+          
+          if (decodedText !== lastScanned.current || Date.now() - lastScanTime.current > 2000) {
+            lastScanned.current = decodedText;
+            lastScanTime.current = Date.now();
+            onScan(decodedText);
+          } else {
+             // Reset timer as long as the barcode is kept in the view
+             lastScanTime.current = Date.now();
+          }
         },
         () => {
           // ignore background scan errors

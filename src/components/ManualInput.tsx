@@ -1,8 +1,15 @@
-import { useState, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent, useEffect, useRef } from 'react';
 import { Scan } from 'lucide-react';
 
-export function ManualInput({ onScan }: { onScan: (code: string) => void }) {
+export function ManualInput({ onScan, isActive }: { onScan: (code: string) => void; isActive: boolean }) {
   const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isActive && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isActive]);
   
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && value.trim() !== '') {
@@ -17,6 +24,7 @@ export function ManualInput({ onScan }: { onScan: (code: string) => void }) {
         <Scan className="h-5 w-5 text-gray-400" />
       </div>
       <input
+        ref={inputRef}
         type="text"
         autoFocus
         value={value}
@@ -28,3 +36,4 @@ export function ManualInput({ onScan }: { onScan: (code: string) => void }) {
     </div>
   )
 }
+
