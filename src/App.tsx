@@ -7,6 +7,7 @@ import { Toast } from './components/Toast';
 import { InventoryItem } from './types';
 import { getProductData } from './api';
 import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2 } from 'lucide-react';
+import { useHardwareScanner } from './hooks/useHardwareScanner';
 
 export default function App() {
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
@@ -31,7 +32,7 @@ export default function App() {
   };
 
   const handleScan = useCallback(async (barcode: string) => {
-    if (!barcode || loadingBarcode) return;
+    if (!barcode || loadingBarcode || productToCreate) return;
     
     setLoadingBarcode(barcode);
 
@@ -66,7 +67,10 @@ export default function App() {
     }
     
     setLoadingBarcode(null);
-  }, [inventory, loadingBarcode]);
+  }, [inventory, loadingBarcode, productToCreate]);
+
+  // Hook for physical hardware scanners globally
+  useHardwareScanner(handleScan);
 
   const handleUpdateQuantity = (barcode: string, delta: number) => {
     setInventory(prev => prev.map(item => {
