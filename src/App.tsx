@@ -6,6 +6,7 @@ import { ManualProductModal } from './components/ManualProductModal';
 import { QuantityModal } from './components/QuantityModal';
 import { Toast } from './components/Toast';
 import { InventoryItem } from './types';
+import { deleteInventoryItem, fetchInventoryItems, isSupabaseConfigured, upsertInventoryItem } from './lib/supabaseInventory';
 import { getProductData } from './api';
 import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2, Search, Filter } from 'lucide-react';
 import { useHardwareScanner } from './hooks/useHardwareScanner';
@@ -16,10 +17,9 @@ type ActionModalState =
   | null;
 
 export default function App() {
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const saved = localStorage.getItem('inventory');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isInventoryLoading, setIsInventoryLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
   
   const [scanningMode, setScanningMode] = useState<'manual' | 'camera'>('manual');
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
@@ -31,8 +31,45 @@ export default function App() {
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-  }, [inventory]);
+    let isMounted = true;
+
+    async function loadInventory() {
+      if (!isSupabaseConfigured) {
+        setSyncError('Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer la synchronisation Supabase.');
+        setIsInventoryLoading(false);
+        return;
+      }
+
+      try {
+        const items = await fetchInventoryItems();
+        if (isMounted) {
+          setInventory(items);
+          setSyncError(null);
+        }
+      } catch (error) {
+        console.error('Erreur de chargement Supabase:', error);
+        if (isMounted) {
+          setSyncError(error instanceof Error ? error.message : 'Impossible de charger l’inventaire Supabase.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsInventoryLoading(false);
+        }
+      }
+    }
+
+    loadInventory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const syncItem = async (item: InventoryItem) => {
+    const savedItem = await upsertInventoryItem(item);
+    setInventory(prev => [savedItem, ...prev.filter(i => i.barcode !== savedItem.barcode)]);
+    setSyncError(null);
+  };
 
   const showToast = (text: string) => {
     setToastMessage({ text, id: Date.now() });
@@ -82,43 +119,72 @@ export default function App() {
   // Hook for physical hardware scanners globally
   useHardwareScanner(handleScan);
 
-  const handleUpdateQuantity = (barcode: string, delta: number) => {
-    setInventory(prev => prev.map(item => {
-      if (item.barcode === barcode) {
-        const newQty = Math.max(0, item.quantity + delta);
-        return { ...item, quantity: newQty, lastUpdated: Date.now() };
-      }
-      return item;
-    }));
-  };
+  const handleUpdateQuantity = async (barcode: string, delta: number) => {
+    const existingItem = inventory.find(item => item.barcode === barcode);
+    if (!existingItem) return;
 
-  const handleRemoveItem = (barcode: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet article ?")) {
-      setInventory(prev => prev.filter(i => i.barcode !== barcode));
+    const updatedItem = {
+      ...existingItem,
+      quantity: Math.max(0, existingItem.quantity + delta),
+      lastUpdated: Date.now(),
+    };
+
+    setInventory(prev => prev.map(item => item.barcode === barcode ? updatedItem : item));
+
+    try {
+      await syncItem(updatedItem);
+    } catch (error) {
+      console.error('Erreur de synchronisation Supabase:', error);
+      setInventory(prev => prev.map(item => item.barcode === barcode ? existingItem : item));
+      setSyncError(error instanceof Error ? error.message : 'Impossible de synchroniser la quantité.');
+      showToast('Erreur de synchronisation Supabase');
     }
   };
 
-  const handleManualProductSave = (name: string, quantity: number) => {
+  const handleRemoveItem = async (barcode: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cet article ?")) {
+      const previousInventory = inventory;
+      setInventory(prev => prev.filter(i => i.barcode !== barcode));
+
+      try {
+        await deleteInventoryItem(barcode);
+        setSyncError(null);
+      } catch (error) {
+        console.error('Erreur de suppression Supabase:', error);
+        setInventory(previousInventory);
+        setSyncError(error instanceof Error ? error.message : 'Impossible de supprimer cet article dans Supabase.');
+        showToast('Erreur de suppression Supabase');
+      }
+    }
+  };
+
+  const handleManualProductSave = async (name: string, quantity: number) => {
     if (actionModal?.type === 'manual') {
-      setInventory(prev => [{
+      const item: InventoryItem = {
         barcode: actionModal.barcode,
         name,
         quantity,
         lastUpdated: Date.now()
-      }, ...prev]);
-      showToast(`Ajouté: ${name} (x${quantity})`);
+      };
+
+      try {
+        await syncItem(item);
+        showToast(`Ajouté: ${name} (x${quantity})`);
+        setActionModal(null);
+      } catch (error) {
+        console.error('Erreur de synchronisation Supabase:', error);
+        setSyncError(error instanceof Error ? error.message : 'Impossible d’ajouter cet article dans Supabase.');
+        showToast('Erreur de synchronisation Supabase');
+      }
     }
-    setActionModal(null);
   };
 
-  const handleQuantitySave = (quantityToAdd: number) => {
+  const handleQuantitySave = async (quantityToAdd: number) => {
     if (actionModal?.type === 'quantity') {
       const { product, isNew } = actionModal;
-      
-      setInventory(prev => {
-        if (isNew) {
-          return [{
-            ...product, // Need to cast or construct properly
+      const existingItem = inventory.find(item => item.barcode === product.barcode);
+      const item: InventoryItem = isNew || !existingItem
+        ? {
             barcode: product.barcode,
             name: product.name,
             imageUrl: product.imageUrl,
@@ -126,19 +192,23 @@ export default function App() {
             category: product.category,
             quantity: quantityToAdd,
             lastUpdated: Date.now()
-          }, ...prev];
-        } else {
-          return prev.map(item => {
-            if (item.barcode === product.barcode) {
-              return { ...item, quantity: item.quantity + quantityToAdd, lastUpdated: Date.now() };
-            }
-            return item;
-          });
-        }
-      });
-      showToast(`+${quantityToAdd} ${product.name}`);
+          }
+        : {
+            ...existingItem,
+            quantity: existingItem.quantity + quantityToAdd,
+            lastUpdated: Date.now()
+          };
+
+      try {
+        await syncItem(item);
+        showToast(`+${quantityToAdd} ${product.name}`);
+        setActionModal(null);
+      } catch (error) {
+        console.error('Erreur de synchronisation Supabase:', error);
+        setSyncError(error instanceof Error ? error.message : 'Impossible de synchroniser cet article.');
+        showToast('Erreur de synchronisation Supabase');
+      }
     }
-    setActionModal(null);
   };
 
   const handleExport = () => {
@@ -196,6 +266,9 @@ export default function App() {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-gray-900">Inventaire Boutique</h1>
               <p className="text-xs text-gray-500 font-medium">{inventory.length} références &bull; {totalItems} articles</p>
+              <p className={`text-xs font-medium ${syncError ? 'text-red-500' : 'text-emerald-600'}`}>
+                {syncError ? 'Supabase non synchronisé' : 'Synchronisé avec Supabase'}
+              </p>
             </div>
           </div>
           {inventory.length > 0 && (
@@ -254,6 +327,12 @@ export default function App() {
             )}
           </div>
         </section>
+
+        {syncError && (
+          <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {syncError}
+          </div>
+        )}
 
         {/* Inventory Section */}
         <section>
@@ -319,11 +398,18 @@ export default function App() {
             )}
           </div>
           
+          {isInventoryLoading ? (
+            <div className="flex items-center justify-center gap-3 rounded-2xl border border-gray-100 bg-white py-12 text-blue-600">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="font-medium">Chargement de l’inventaire Supabase...</span>
+            </div>
+          ) : (
           <InventoryGrid 
             items={filteredInventory} 
             onUpdateQuantity={handleUpdateQuantity}
             onRemove={handleRemoveItem}
           />
+          )}
         </section>
       </main>
 

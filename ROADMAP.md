@@ -8,7 +8,7 @@ Cette feuille de route détaille les améliorations et futures fonctionnalités 
 - [x] **Alerte de Stock Bas** : Configurer un seuil (ex: < 5 articles) qui souligne en rouge ou orange les articles en rupture proche.
 
 ## Phase 2 : Cloud & Mode Collaboratif ☁️
-- [ ] **Synchronisation Backend (Firebase / Supabase)** : Remplacer le `localStorage` par une véritable base de données Cloud pour ne pas perdre les données en cas de changement de navigateur.
+- [x] **Synchronisation Backend (Supabase)** : Remplacer le `localStorage` par une véritable base de données Cloud pour ne pas perdre les données en cas de changement de navigateur.
 - [ ] **Travail en Équipe (Temps Réel)** : Permettre à plusieurs employés équipés de leurs propres téléphones/scanners de remplir le même stock en même temps de manière synchronisée.
 - [ ] **Authentification** : Ajouter une connexion par mot de passe pour protéger l'accès à l'inventaire.
 
