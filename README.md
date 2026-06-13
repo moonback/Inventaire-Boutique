@@ -10,7 +10,7 @@ Une application web moderne et réactive de gestion d'inventaire pour boutique, 
 - **Intégration OpenFoodFacts** : Récupération automatique et instantanée du nom du produit, de sa marque, de sa catégorie et de sa photo via l'API publique OpenFoodFacts.
 - **Flux de Quantité Rapide** : À chaque scan, une popup s'affiche automatiquement en plaçant le curseur sur le champ quantité pour une saisie ultra-fluide.
 - **Mode Saisie Manuelle** : Permet la création d'articles à la volée lorsqu'un code-barres n'est pas reconnu par les bases de données publiques.
-- **Persistance Locale** : L'inventaire est enregistré localement et automatiquement dans le navigateur (Local Storage).
+- **Synchronisation Supabase** : L'inventaire est enregistré dans une base de données Supabase afin de retrouver les données depuis un autre navigateur ou appareil.
 - **Export CSV** : Un simple bouton permet d'extraire tout le stock actuel sous forme de tableau exploitable sur Excel.
 
 ## 🛠️ Stack Technique
@@ -18,7 +18,20 @@ Une application web moderne et réactive de gestion d'inventaire pour boutique, 
 - **Frontend** : React 19, TypeScript
 - **Style** : Tailwind CSS v4, Lucide React (icônes)
 - **Scanner Caméra** : html5-qrcode
+- **Backend** : Supabase (API REST PostgREST)
 - **Outil de Build** : Vite
+
+
+
+## ☁️ Configuration Supabase
+
+1. Créez un projet Supabase.
+2. Exécutez le contenu de `supabase-schema.sql` dans l'éditeur SQL Supabase pour créer la table `inventory_items` et ses règles RLS.
+3. Copiez `.env.example` vers `.env.local` puis renseignez :
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_INVENTORY_TABLE` si vous souhaitez utiliser un autre nom de table.
+4. Redémarrez le serveur Vite après modification des variables d'environnement.
 
 ## 📦 Utilisation
 
