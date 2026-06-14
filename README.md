@@ -1,4 +1,4 @@
-# 📦 Boutique · Inventaire PWA
+# 📦 Boutique · Inventaire PWA 
 
 Une application Progressive Web App (PWA) de gestion d'inventaire mobile-first, conçue pour un scan rapide, une synchronisation Cloud en temps réel et un confort d'utilisation optimal en boutique.
 
