@@ -3,6 +3,9 @@ declare module "react" {
 
   export type FormEvent<T = any> = any;
   export type TouchEvent<T = any> = any;
+  export type KeyboardEvent<T = any> = any;
+  export type ChangeEvent<T = any> = any;
+
 
   export function useState<S = any>(
     initialState: S | (() => S),
@@ -26,7 +29,10 @@ declare module "react" {
   export type ReactElement = any;
 
   export const Fragment: any;
+
+  export const StrictMode: any;
 }
+
 
 declare module "react/jsx-runtime" {
   export const jsx: any;

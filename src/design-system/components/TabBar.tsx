@@ -1,5 +1,10 @@
 import React from "react";
 import type { ReactNode } from "react";
+import {
+  Barcode,
+  Package,
+  Tag,
+} from "lucide-react";
 
 export type TabKey = "scan" | "stock" | "categories";
 
@@ -16,6 +21,7 @@ export function TabBar({
     icon: ReactNode,
   ) => {
     const isActive = active === tab;
+
     const colorClass =
       tab === "scan"
         ? isActive
@@ -32,15 +38,15 @@ export function TabBar({
     const bgClass =
       tab === "scan"
         ? isActive
-          ? "bg-indigo-50"
-          : ""
+          ? "bg-indigo-50 border border-indigo-100"
+          : "border border-transparent"
         : tab === "stock"
           ? isActive
-            ? "bg-emerald-50"
-            : ""
+            ? "bg-emerald-50 border border-emerald-100"
+            : "border border-transparent"
           : isActive
-            ? "bg-indigo-50"
-            : "";
+            ? "bg-indigo-50 border border-indigo-100"
+            : "border border-transparent";
 
     return (
       <button
@@ -49,7 +55,11 @@ export function TabBar({
         className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${colorClass}`}
         aria-current={isActive ? "page" : undefined}
       >
-        <div className={`p-1.5 rounded-xl transition ${bgClass}`}>
+        <div
+          className={`p-1.5 rounded-xl transition ${bgClass} shadow-sm ${
+            isActive ? "shadow-indigo-600/10" : "shadow-none"
+          }`}
+        >
           {icon}
         </div>
         <span className="text-[10px] font-bold tracking-wide">{label}</span>
@@ -57,18 +67,29 @@ export function TabBar({
     );
   };
 
-  // Icons come from lucide-react in the caller via wrapper components.
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t pb-safe"
       aria-label="Navigation"
     >
       <div className="mx-auto max-w-lg flex justify-around py-3">
-        {/* Caller will provide exact icons by composing TabBar; placeholders here */}
-        {item("scan", "Scanner", <span className="h-5 w-5" />)}
-        {item("stock", "Stock", <span className="h-5 w-5" />)}
-        {item("categories", "Catégories", <span className="h-5 w-5" />)}
+        {item(
+          "scan",
+          "Scanner",
+          <Barcode className="h-5 w-5" strokeWidth={2.25} />,
+        )}
+        {item(
+          "stock",
+          "Stock",
+          <Package className="h-5 w-5" strokeWidth={2.25} />,
+        )}
+        {item(
+          "categories",
+          "Catégories",
+          <Tag className="h-5 w-5" strokeWidth={2.25} />,
+        )}
       </div>
     </nav>
   );
 }
+

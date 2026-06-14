@@ -1,6 +1,7 @@
 import { Header } from "./components/Header";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ManualInput } from "./components/ManualInput";
+import { ScanTabView } from "./views/ScanTabView";
 import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
