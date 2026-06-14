@@ -6,6 +6,8 @@ interface QuantityModalProps {
     barcode: string;
     name: string;
     imageUrl?: string;
+    brand?: string;
+    category?: string;
   };
   existingQty: number;
   isNew: boolean;
@@ -46,6 +48,8 @@ export function QuantityModal({ product, existingQty, isNew, onSave, onCancel }:
              <div>
                 <h3 className="font-semibold text-gray-900 leading-tight line-clamp-2">{product.name}</h3>
                 <p className="text-sm font-mono text-gray-500 mt-1">{product.barcode}</p>
+                {product.brand && <p className="text-xs text-gray-500 mt-1">Marque: {product.brand}</p>}
+                {product.category && <p className="text-xs text-gray-500 mt-1">Catégorie: {product.category}</p>}
                 {!isNew && <p className="text-xs text-blue-600 font-medium mt-1">En stock: {existingQty}</p>}
              </div>
           </div>

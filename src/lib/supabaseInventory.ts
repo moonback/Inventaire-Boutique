@@ -93,6 +93,15 @@ export async function fetchInventoryItems(): Promise<InventoryItem[]> {
   return rows.map(toInventoryItem);
 }
 
+
+export async function fetchInventoryItemByBarcode(barcode: string): Promise<InventoryItem | null> {
+  const rows = await request<SupabaseInventoryRow[]>(getRestUrl(`?select=*&barcode=eq.${encodeURIComponent(barcode)}&limit=1`), {
+    headers: getHeaders(),
+  });
+
+  return rows[0] ? toInventoryItem(rows[0]) : null;
+}
+
 export async function upsertInventoryItem(item: InventoryItem): Promise<InventoryItem> {
   const rows = await request<SupabaseInventoryRow[]>(getRestUrl('?on_conflict=barcode'), {
     method: 'POST',

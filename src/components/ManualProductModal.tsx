@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 
 interface ManualProductModalProps {
   barcode: string;
-  onSave: (name: string, quantity: number) => void;
+  onSave: (product: { name: string; brand?: string; category?: string }, quantity: number) => void;
   onCancel: () => void;
 }
 
 export function ManualProductModal({ barcode, onSave, onCancel }: ManualProductModalProps) {
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
+  const [brand, setBrand] = useState('');
+  const [category, setCategory] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,7 +22,11 @@ export function ManualProductModal({ barcode, onSave, onCancel }: ManualProductM
   const handleSave = () => {
     const num = parseInt(qty, 10);
     if (name.trim() && !isNaN(num) && num > 0) {
-      onSave(name.trim(), num);
+      onSave({
+        name: name.trim(),
+        brand: brand.trim() || undefined,
+        category: category.trim() || undefined,
+      }, num);
     }
   };
 
@@ -47,6 +53,31 @@ export function ManualProductModal({ barcode, onSave, onCancel }: ManualProductM
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Marque</label>
+              <input
+                type="text"
+                value={brand}
+                onChange={e => setBrand(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && document.getElementById('category-input')?.focus()}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                placeholder="Ex: Coca-Cola"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+              <input
+                id="category-input"
+                type="text"
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && document.getElementById('qty-input')?.focus()}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                placeholder="Ex: Boissons"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Quantité (nouveau stock)</label>
               <input
