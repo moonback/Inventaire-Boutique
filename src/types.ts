@@ -20,3 +20,10 @@ export interface InventoryItem extends ProductLookupData {
   salesPrice?: number;
   lastMovement?: number;
 }
+
+export interface CategoryItem {
+  id?: string;
+  name: string;
+  icon?: string;
+}
+

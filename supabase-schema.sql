@@ -59,3 +59,46 @@ CREATE POLICY "Public Delete Access" ON storage.objects
   FOR DELETE USING (bucket_id = 'product-photos');
 
 
+-- MIGRATION: GESTION DES CATÉGORIES
+CREATE TABLE IF NOT EXISTS public.categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  icon text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public categories reads"
+  ON public.categories FOR SELECT USING (true);
+
+CREATE POLICY "Allow public categories inserts"
+  ON public.categories FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public categories updates"
+  ON public.categories FOR UPDATE USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public categories deletes"
+  ON public.categories FOR DELETE USING (true);
+
+-- Insertion des catégories initiales
+INSERT INTO public.categories (name, icon) VALUES
+  ('Produits laitiers', '🥛'),
+  ('Viandes', '🍖'),
+  ('Poissons', '🐟'),
+  ('Conserves', '🥫'),
+  ('Pâtes et céréales', '🍝'),
+  ('Riz', '🍚'),
+  ('Légumes', '🥦'),
+  ('Fruits', '🍎'),
+  ('Biscuits', '🍪'),
+  ('Confiseries', '🍫'),
+  ('Boissons', '🥤'),
+  ('Épicerie', '🧂'),
+  ('Surgelés', '🧊'),
+  ('Entretien', '🧹'),
+  ('Hygiène', '🧻')
+ON CONFLICT (name) DO NOTHING;
+
+
+

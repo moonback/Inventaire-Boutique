@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, TouchEvent } from "react";
-import { InventoryItem } from "../types";
+import { InventoryItem, CategoryItem } from "../types";
 import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2, TrendingUp, TrendingDown } from "lucide-react";
 
 interface SwipeableItemProps {
@@ -81,6 +81,7 @@ function SwipeableItem({ children, isCompact = false, onSwipeRight, onSwipeLeft 
 
 interface InventoryGridProps {
   items: InventoryItem[];
+  categories?: CategoryItem[];
   isCompactView?: boolean;
   onUpdateQuantity: (barcode: string, delta: number) => void;
   onRemove: (barcode: string) => void;
@@ -90,6 +91,7 @@ interface InventoryGridProps {
 
 export function InventoryGrid({
   items,
+  categories = [],
   isCompactView = false,
   onUpdateQuantity,
   onRemove,
@@ -154,7 +156,10 @@ export function InventoryGrid({
           {/* Category Header */}
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {group.category}
+              {(() => {
+                const catObj = categories.find(c => c.name.toLowerCase() === group.category.toLowerCase());
+                return catObj?.icon ? `${catObj.icon} ${group.category}` : group.category;
+              })()}
             </h3>
             <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-full">
               {group.items.length}

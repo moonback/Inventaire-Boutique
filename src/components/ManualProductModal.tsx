@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { Sparkles, Check, X, Minus, Plus, Edit2, Camera, Trash2, Loader2 } from 'lucide-react';
+import { Sparkles, Check, X, Minus, Plus, Edit2, Camera, Trash2, Loader2, Wand2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { uploadProductImage } from '../lib/supabaseInventory';
+import { CategoryItem } from '../types';
+import { suggestCategory } from '../lib/autoCategorization';
 
 interface ManualProductModalProps {
   barcode: string;
+  categories: CategoryItem[];
   initialValues?: {
     name: string;
     brand?: string;
@@ -28,7 +31,7 @@ interface ManualProductModalProps {
   onCancel: () => void;
 }
 
-export function ManualProductModal({ barcode, initialValues, onSave, onCancel }: ManualProductModalProps) {
+export function ManualProductModal({ barcode, categories, initialValues, onSave, onCancel }: ManualProductModalProps) {
   const [name, setName] = useState(initialValues?.name ?? '');
   const [qty, setQty] = useState(String(initialValues?.quantity ?? '1'));
   const [brand, setBrand] = useState(initialValues?.brand ?? '');
@@ -44,6 +47,16 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!initialValues;
+
+  // Auto-suggest category on name change
+  useEffect(() => {
+    if (name.trim()) {
+      const suggestion = suggestCategory(name, undefined, categories);
+      if (suggestion) {
+        setCategory(suggestion);
+      }
+    }
+  }, [name, categories]);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -230,15 +243,21 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Catégorie</label>
-                <input
+                <select
                   id="category-input"
-                  type="text"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
-                  placeholder="Ex: Boissons"
-                />
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition bg-[#0f172a] border border-slate-800 cursor-pointer"
+                >
+                  <option value="" className="bg-slate-950 text-slate-400">Non classé</option>
+                  {categories.map(cat => (
+                    <option key={cat.name} value={cat.name} className="bg-slate-950 text-white">
+                      {cat.icon ? `${cat.icon} ` : ''}{cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+
             </div>
 
             <div>

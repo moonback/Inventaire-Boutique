@@ -7,7 +7,7 @@ import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
-import { InventoryItem, ProductLookupData } from "./types";
+import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
 import {
   deleteInventoryItem,
   fetchInventoryItemByBarcode,
@@ -15,6 +15,9 @@ import {
   isSupabaseConfigured,
   upsertInventoryItem,
 } from "./lib/supabaseInventory";
+import { fetchCategories } from "./lib/supabaseCategories";
+import { CategoriesManager } from "./components/CategoriesManager";
+import { suggestCategory } from "./lib/autoCategorization";
 import { getSession, signOut, UserSession } from "./lib/supabaseAuth";
 import { getProductData } from "./api";
 import {
@@ -30,10 +33,12 @@ import {
   LayoutGrid,
   Minus,
   Plus,
+  Tags,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
 import { triggerHaptic } from "./lib/haptics";
+
 
 type ActionModalState =
   | {
@@ -55,7 +60,8 @@ export default function App() {
   const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"scan" | "stock">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "stock" | "categories">("scan");
+  const [dbCategories, setDbCategories] = useState<CategoryItem[]>([]);
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
@@ -81,6 +87,40 @@ export default function App() {
     setIsSessionLoading(false);
   }, []);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const cats = await fetchCategories();
+      setDbCategories(cats);
+    } catch (error) {
+      console.error("Erreur de chargement des catégories:", error);
+    }
+  }, []);
+
+  const loadInventoryOnly = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setSyncError(
+        "Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer la synchronisation Supabase.",
+      );
+      setIsInventoryLoading(false);
+      return;
+    }
+
+    try {
+      const items = await fetchInventoryItems();
+      setInventory(items);
+      setSyncError(null);
+    } catch (error) {
+      console.error("Erreur de chargement Supabase:", error);
+      setSyncError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de charger l’inventaire Supabase.",
+      );
+    } finally {
+      setIsInventoryLoading(false);
+    }
+  }, []);
+
   // Fetch inventory once authenticated
   useEffect(() => {
     if (!session) return;
@@ -88,7 +128,7 @@ export default function App() {
     let isMounted = true;
     setIsInventoryLoading(true);
 
-    async function loadInventory() {
+    async function loadData() {
       if (!isSupabaseConfigured) {
         setSyncError(
           "Configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY pour activer la synchronisation Supabase.",
@@ -98,9 +138,13 @@ export default function App() {
       }
 
       try {
-        const items = await fetchInventoryItems();
+        const [items, cats] = await Promise.all([
+          fetchInventoryItems(),
+          fetchCategories(),
+        ]);
         if (isMounted) {
           setInventory(items);
+          setDbCategories(cats);
           setSyncError(null);
         }
       } catch (error) {
@@ -109,7 +153,7 @@ export default function App() {
           setSyncError(
             error instanceof Error
               ? error.message
-              : "Impossible de charger l’inventaire Supabase.",
+              : "Impossible de charger les données Supabase.",
           );
         }
       } finally {
@@ -119,7 +163,7 @@ export default function App() {
       }
     }
 
-    loadInventory();
+    loadData();
 
     return () => {
       isMounted = false;
@@ -202,12 +246,13 @@ export default function App() {
 
           const data = await getProductData(barcode);
           if (data) {
+            const suggested = suggestCategory(data.name, data.category, dbCategories);
             const item: InventoryItem = {
               barcode,
               name: data.name,
               imageUrl: data.imageUrl,
               brand: data.brand,
-              category: data.category,
+              category: suggested || data.category,
               quantity: 1,
               lastUpdated: Date.now(),
               lastMovement: 1,
@@ -259,10 +304,11 @@ export default function App() {
 
         const data = await getProductData(barcode);
         if (data) {
+          const suggested = suggestCategory(data.name, data.category, dbCategories);
           triggerHaptic("success");
           setActionModal({
             type: "quantity",
-            product: { barcode, ...data },
+            product: { barcode, ...data, category: suggested || data.category },
             existingQty: 0,
             isNew: true,
           });
@@ -786,7 +832,7 @@ export default function App() {
               </div>
             )}
           </section>
-        ) : (
+        ) : activeTab === "stock" ? (
           /* STOCK VIEW TAB */
           <section className="glass-card rounded-[2rem] p-5 space-y-4">
             <div className="flex flex-col gap-3">
@@ -877,6 +923,8 @@ export default function App() {
                   </button>
                   {categories.map((cat) => {
                     const count = inventory.filter((i) => i.category?.trim() === cat).length;
+                    const catObj = dbCategories.find(c => c.name.toLowerCase() === cat.toLowerCase());
+                    const displayLabel = catObj?.icon ? `${catObj.icon} ${cat}` : cat;
                     return (
                       <button
                         key={cat}
@@ -887,7 +935,7 @@ export default function App() {
                             : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 backdrop-blur-xs"
                         }`}
                       >
-                        {cat} ({count})
+                        {displayLabel} ({count})
                       </button>
                     );
                   })}
@@ -938,6 +986,7 @@ export default function App() {
             ) : (
               <InventoryGrid
                 items={filteredInventory}
+                categories={dbCategories}
                 isCompactView={isCompactView}
                 onUpdateQuantity={handleUpdateQuantity}
                 onRemove={handleRemoveItem}
@@ -954,6 +1003,14 @@ export default function App() {
               />
             )}
           </section>
+        ) : (
+          <CategoriesManager
+            categories={dbCategories}
+            inventory={inventory}
+            onRefreshCategories={loadCategories}
+            onRefreshInventory={loadInventoryOnly}
+            showToast={showToast}
+          />
         )}
       </main>
 
@@ -983,6 +1040,18 @@ export default function App() {
             </div>
             <span className="text-[10px] font-bold tracking-wide">Stock</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+              activeTab === "categories" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'categories' ? 'bg-indigo-500/10' : ''}`}>
+              <Tags className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide">Catégories</span>
+          </button>
         </div>
       </nav>
 
@@ -990,6 +1059,7 @@ export default function App() {
       {actionModal?.type === "manual" && (
         <ManualProductModal
           barcode={actionModal.barcode}
+          categories={dbCategories}
           onSave={handleManualProductSave}
           onCancel={() => setActionModal(null)}
         />
@@ -1017,6 +1087,7 @@ export default function App() {
       {actionModal?.type === "edit" && (
         <ManualProductModal
           barcode={actionModal.product.barcode}
+          categories={dbCategories}
           initialValues={actionModal.product}
           onSave={handleProductUpdateSave}
           onCancel={() => setActionModal(null)}
