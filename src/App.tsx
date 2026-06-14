@@ -1046,11 +1046,11 @@ export default function App() {
                 </div>
                 
                 <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
-                  <span className="font-semibold text-slate-400">État du Stock</span>
+                  <span className="font-semibold text-stone-500">État du Stock</span>
                   <select
                     value={stockFilter}
                     onChange={(e) => setStockFilter(e.target.value as any)}
-                    className="rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-slate-200 outline-none focus:border-indigo-500/50 transition"
+                    className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
                   >
                     <option value="all">Tous les articles</option>
                     <option value="instock">En stock (&gt; 5)</option>
@@ -1062,8 +1062,8 @@ export default function App() {
             )}
 
             {isInventoryLoading ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-400 border border-dashed border-slate-850 rounded-2xl bg-slate-950/20">
-                <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-stone-500 border border-dashed border-stone-300 rounded-2xl bg-stone-50/50">
+                <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
                 <span className="text-xs font-semibold tracking-wider">
                   Chargement de l’inventaire...
                 </span>
@@ -1100,15 +1100,15 @@ export default function App() {
       </main>
 
       {/* Modern Fixed Bottom Tab Bar Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-slate-800/80 bg-[#070b13]/80 backdrop-blur-md pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t pb-safe">
         <div className="mx-auto max-w-lg flex justify-around py-3">
           <button
             onClick={() => setActiveTab("scan")}
             className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "scan" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "scan" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'scan' ? 'bg-indigo-500/10' : ''}`}>
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'scan' ? 'bg-indigo-50' : ''}`}>
               <Scan className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-bold tracking-wide">Scanner</span>
@@ -1117,10 +1117,10 @@ export default function App() {
           <button
             onClick={() => setActiveTab("stock")}
             className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "stock" ? "text-emerald-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "stock" ? "text-emerald-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'stock' ? 'bg-emerald-500/10' : ''}`}>
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'stock' ? 'bg-emerald-50' : ''}`}>
               <Package className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-bold tracking-wide">Stock</span>
@@ -1129,10 +1129,10 @@ export default function App() {
           <button
             onClick={() => setActiveTab("categories")}
             className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "categories" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+              activeTab === "categories" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'categories' ? 'bg-indigo-500/10' : ''}`}>
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'categories' ? 'bg-indigo-50' : ''}`}>
               <Tags className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-bold tracking-wide">Catégories</span>
