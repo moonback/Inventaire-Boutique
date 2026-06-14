@@ -41,23 +41,34 @@ function openDb(): Promise<IDBDatabase> {
 function runTransaction<T>(
   storeName: string,
   mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T> | void,
-): Promise<T | void> {
+  fn: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
   return openDb().then(
     (db) =>
-      new Promise<T | void>((resolve, reject) => {
+      new Promise<T>((resolve, reject) => {
         const tx = db.transaction(storeName, mode);
         const store = tx.objectStore(storeName);
         const request = fn(store);
 
-        tx.oncomplete = () => {
-          if (request instanceof IDBRequest) {
-            resolve(request.result);
-          } else {
-            resolve();
-          }
-        };
+        tx.oncomplete = () => resolve(request.result);
+        tx.onerror = () => reject(tx.error ?? new Error('Erreur de transaction IndexedDB.'));
+        tx.onabort = () => reject(tx.error ?? new Error('Transaction IndexedDB annulée.'));
+      }),
+  );
+}
 
+function runWriteTransaction(
+  storeName: string,
+  fn: (store: IDBObjectStore) => void,
+): Promise<void> {
+  return openDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        fn(store);
+
+        tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error ?? new Error('Erreur de transaction IndexedDB.'));
         tx.onabort = () => reject(tx.error ?? new Error('Transaction IndexedDB annulée.'));
       }),
@@ -65,7 +76,9 @@ function runTransaction<T>(
 }
 
 export async function cacheInventoryItem(item: InventoryItem): Promise<void> {
-  await runTransaction('inventory_cache', 'readwrite', (store) => store.put(item));
+  await runWriteTransaction('inventory_cache', (store) => {
+    store.put(item);
+  });
 }
 
 export async function cacheInventoryItems(items: InventoryItem[]): Promise<void> {
@@ -84,7 +97,9 @@ export async function cacheInventoryItems(items: InventoryItem[]): Promise<void>
 }
 
 export async function removeCachedInventoryItem(barcode: string): Promise<void> {
-  await runTransaction('inventory_cache', 'readwrite', (store) => store.delete(barcode));
+  await runWriteTransaction('inventory_cache', (store) => {
+    store.delete(barcode);
+  });
 }
 
 export async function getCachedInventoryItem(barcode: string): Promise<InventoryItem | null> {
@@ -102,18 +117,18 @@ export async function getAllCachedInventory(): Promise<InventoryItem[]> {
     'readonly',
     (store) => store.getAll(),
   );
-  return (result ?? []).sort((a, b) => b.lastUpdated - a.lastUpdated);
+  return [...(result ?? [])].sort((a, b) => b.lastUpdated - a.lastUpdated);
 }
 
 export async function enqueueMutation(
   mutation: Omit<PendingMutation, 'id' | 'createdAt'> & { createdAt?: number },
 ): Promise<void> {
-  await runTransaction('pending_mutations', 'readwrite', (store) =>
+  await runWriteTransaction('pending_mutations', (store) => {
     store.add({
       ...mutation,
       createdAt: mutation.createdAt ?? Date.now(),
-    }),
-  );
+    });
+  });
 }
 
 export async function getPendingMutations(): Promise<PendingMutation[]> {
@@ -122,7 +137,7 @@ export async function getPendingMutations(): Promise<PendingMutation[]> {
     'readonly',
     (store) => store.getAll(),
   );
-  return (result ?? []).sort((a, b) => a.createdAt - b.createdAt);
+  return [...(result ?? [])].sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export async function getPendingMutationCount(): Promise<number> {
@@ -131,9 +146,13 @@ export async function getPendingMutationCount(): Promise<number> {
 }
 
 export async function removePendingMutation(id: number): Promise<void> {
-  await runTransaction('pending_mutations', 'readwrite', (store) => store.delete(id));
+  await runWriteTransaction('pending_mutations', (store) => {
+    store.delete(id);
+  });
 }
 
 export async function clearPendingMutations(): Promise<void> {
-  await runTransaction('pending_mutations', 'readwrite', (store) => store.clear());
+  await runWriteTransaction('pending_mutations', (store) => {
+    store.clear();
+  });
 }
