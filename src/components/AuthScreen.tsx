@@ -112,7 +112,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                     placeholder="nom@boutique.com"
                     disabled={loading}
                   />
@@ -130,7 +130,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                     placeholder="••••••••"
                     disabled={loading}
                   />

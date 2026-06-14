@@ -79,7 +79,7 @@ export function ManualInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="h-12 min-w-0 flex-1 rounded-xl bg-slate-900 border border-slate-800 px-4 text-base font-semibold font-mono text-white outline-none placeholder:text-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition disabled:opacity-40 sm:h-11 sm:text-sm"
+          className="h-12 min-w-0 flex-1 rounded-xl glass-input px-4 text-base font-semibold font-mono text-white outline-none placeholder:text-slate-650 transition disabled:opacity-40 sm:h-11 sm:text-sm"
           placeholder="Saisir ou scanner..."
           disabled={!isActive}
         />

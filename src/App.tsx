@@ -746,12 +746,12 @@ export default function App() {
               </div>
 
               {/* Financial Stats Summary */}
-              <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950/40 border border-slate-800/60 rounded-2xl">
+              <div className="grid grid-cols-3 gap-2 p-3 bg-slate-900/20 border border-slate-800/60 rounded-2xl backdrop-blur-xs">
                 <div className="text-center">
                   <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Achat Total</span>
                   <span className="font-mono text-xs font-bold text-slate-300">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
                 </div>
-                <div className="text-center border-x border-slate-800/80">
+                <div className="text-center border-x border-slate-800/60">
                   <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">CA Potentiel</span>
                   <span className="font-mono text-xs font-bold text-indigo-300">{financialStats.totalSalesVal.toFixed(2)} €</span>
                 </div>
@@ -762,13 +762,13 @@ export default function App() {
               </div>
               
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
                   placeholder="Rechercher par nom, marque..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-10 w-full rounded-xl bg-slate-950/60 border border-slate-800 pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
+                  className="h-10 w-full rounded-xl glass-input pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition"
                 />
               </div>
 
@@ -780,7 +780,7 @@ export default function App() {
                     className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
                       selectedCategory === null
                         ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-                        : "bg-slate-900 border-slate-850 text-slate-400 hover:text-slate-200"
+                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 backdrop-blur-xs"
                     }`}
                   >
                     Tout ({inventory.length})
@@ -794,7 +794,7 @@ export default function App() {
                         className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
                           selectedCategory === cat
                             ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-                            : "bg-slate-900 border-slate-850 text-slate-400 hover:text-slate-200"
+                            : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 backdrop-blur-xs"
                         }`}
                       >
                         {cat} ({count})
@@ -807,13 +807,13 @@ export default function App() {
 
             {/* Expanded Filters Drawer */}
             {showFilters && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-855 bg-slate-950/50 p-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-800 bg-slate-900/30 backdrop-blur-xs p-3 text-xs">
                 <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
                   <span className="font-semibold text-slate-400">Trier par</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
+                    className="rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-slate-200 outline-none focus:border-indigo-500/50 transition"
                   >
                     <option value="recent">Date d'ajout</option>
                     <option value="name">Alphabétique (A-Z)</option>
@@ -827,7 +827,7 @@ export default function App() {
                   <select
                     value={stockFilter}
                     onChange={(e) => setStockFilter(e.target.value as any)}
-                    className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
+                    className="rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-slate-200 outline-none focus:border-indigo-500/50 transition"
                   >
                     <option value="all">Tous les articles</option>
                     <option value="instock">En stock (&gt; 5)</option>
@@ -868,7 +868,7 @@ export default function App() {
       </main>
 
       {/* Modern Fixed Bottom Tab Bar Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#070b13]/90 backdrop-blur-lg border-t border-slate-900/80 pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-slate-800/80 bg-[#070b13]/80 backdrop-blur-md pb-safe">
         <div className="mx-auto max-w-lg flex justify-around py-3">
           <button
             onClick={() => setActiveTab("scan")}
