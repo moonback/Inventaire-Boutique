@@ -9,12 +9,14 @@ import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
 import {
-  deleteInventoryItem,
-  fetchInventoryItemByBarcode,
-  fetchInventoryItems,
   isSupabaseConfigured,
-  upsertInventoryItem,
 } from "./lib/supabaseInventory";
+import {
+  loadInventoryItems,
+  fetchInventoryItemWithFallback,
+  syncInventoryItem,
+  syncDeleteInventoryItem,
+} from "./lib/inventorySync";
 import { fetchCategories } from "./lib/supabaseCategories";
 import { CategoriesManager } from "./components/CategoriesManager";
 import { suggestCategory } from "./lib/autoCategorization";
@@ -37,6 +39,7 @@ import {
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
+import { useOfflineSync } from "./hooks/useOfflineSync";
 import { triggerHaptic } from "./lib/haptics";
 
 
@@ -59,6 +62,7 @@ export default function App() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [inventorySource, setInventorySource] = useState<"remote" | "cache">("remote");
 
   const [activeTab, setActiveTab] = useState<"scan" | "stock" | "categories">("scan");
   const [dbCategories, setDbCategories] = useState<CategoryItem[]>([]);
@@ -79,6 +83,45 @@ export default function App() {
   const [showFilters, setShowFilters] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
+
+  const showToast = useCallback((text: string) => {
+    const id = Date.now();
+    setToastMessage({ text, id });
+    setTimeout(() => {
+      setToastMessage((prev) => (prev?.id === id ? null : prev));
+    }, 3000);
+  }, []);
+
+  const handleOfflineFlushComplete = useCallback(
+    async (result: { synced: number; failed: number; remaining: number }) => {
+      if (result.synced > 0) {
+        showToast(`${result.synced} modification(s) synchronisée(s)`);
+        try {
+          const { items, source } = await loadInventoryItems();
+          setInventory(items);
+          setInventorySource(source);
+          setSyncError(null);
+        } catch (error) {
+          console.error("Erreur de rechargement après synchro:", error);
+        }
+      }
+      if (result.failed > 0) {
+        showToast(`${result.failed} modification(s) en échec`);
+      }
+    },
+    [showToast],
+  );
+
+  const {
+    isOnline,
+    pendingCount,
+    isSyncing,
+    refreshPendingCount,
+    flushQueue,
+  } = useOfflineSync({
+    enabled: !!session,
+    onFlushComplete: handleOfflineFlushComplete,
+  });
 
   // Check session on mount
   useEffect(() => {
@@ -106,20 +149,25 @@ export default function App() {
     }
 
     try {
-      const items = await fetchInventoryItems();
+      const { items, source } = await loadInventoryItems();
       setInventory(items);
-      setSyncError(null);
+      setInventorySource(source);
+      setSyncError(
+        source === "cache" && !isOnline
+          ? "Mode hors-ligne — données locales affichées."
+          : null,
+      );
     } catch (error) {
       console.error("Erreur de chargement Supabase:", error);
       setSyncError(
         error instanceof Error
           ? error.message
-          : "Impossible de charger l’inventaire Supabase.",
+          : "Impossible de charger l'inventaire Supabase.",
       );
     } finally {
       setIsInventoryLoading(false);
     }
-  }, []);
+  }, [isOnline]);
 
   // Fetch inventory once authenticated
   useEffect(() => {
@@ -138,14 +186,19 @@ export default function App() {
       }
 
       try {
-        const [items, cats] = await Promise.all([
-          fetchInventoryItems(),
+        const [{ items, source }, cats] = await Promise.all([
+          loadInventoryItems(),
           fetchCategories(),
         ]);
         if (isMounted) {
           setInventory(items);
+          setInventorySource(source);
           setDbCategories(cats);
-          setSyncError(null);
+          setSyncError(
+            source === "cache" && !navigator.onLine
+              ? "Mode hors-ligne — données locales affichées."
+              : null,
+          );
         }
       } catch (error) {
         console.error("Erreur de chargement Supabase:", error);
@@ -181,20 +234,18 @@ export default function App() {
   };
 
   const syncItem = async (item: InventoryItem) => {
-    const savedItem = await upsertInventoryItem(item);
+    const { item: savedItem, queued } = await syncInventoryItem(item);
     setInventory((prev) => [
       savedItem,
       ...prev.filter((i) => i.barcode !== savedItem.barcode),
     ]);
-    setSyncError(null);
-  };
-
-  const showToast = (text: string) => {
-    const id = Date.now();
-    setToastMessage({ text, id });
-    setTimeout(() => {
-      setToastMessage((prev) => (prev?.id === id ? null : prev));
-    }, 3000);
+    if (queued) {
+      setSyncError("Modifications en attente de synchronisation.");
+    } else {
+      setSyncError(null);
+    }
+    await refreshPendingCount();
+    return queued;
   };
 
   const handleScan = useCallback(
@@ -228,7 +279,7 @@ export default function App() {
 
         try {
           const databaseItem = isSupabaseConfigured
-            ? await fetchInventoryItemByBarcode(barcode)
+            ? await fetchInventoryItemWithFallback(barcode)
             : null;
           if (databaseItem) {
             const updatedItem = {
@@ -291,7 +342,7 @@ export default function App() {
       try {
         // Not in local state: check Supabase first, then OpenFoodFacts.
         const databaseItem = isSupabaseConfigured
-          ? await fetchInventoryItemByBarcode(barcode)
+          ? await fetchInventoryItemWithFallback(barcode)
           : null;
         if (databaseItem) {
           triggerHaptic("success");
@@ -404,9 +455,10 @@ export default function App() {
       setInventory((prev) => prev.filter((i) => i.barcode !== barcode));
 
       try {
-        await deleteInventoryItem(barcode);
+        const { queued } = await syncDeleteInventoryItem(barcode);
         setSyncError(null);
-        showToast("Article supprimé");
+        showToast(queued ? "Suppression en attente de synchro" : "Article supprimé");
+        await refreshPendingCount();
       } catch (error) {
         console.error("Erreur de suppression Supabase:", error);
         setInventory(previousInventory);
@@ -667,17 +719,32 @@ export default function App() {
         totalItems={totalItems}
         lowStockCount={lowStockCount}
         showExport={inventory.length > 0}
+        isOnline={isOnline}
+        pendingCount={pendingCount}
+        isSyncing={isSyncing}
         onExport={handleExport}
         onLogout={handleLogout}
+        onSyncNow={() => void flushQueue()}
       />
 
       <main className="mx-auto max-w-lg px-4 py-4 space-y-4">
 
         {/* Sync error display */}
         {syncError && (
-          <div className="flex gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+          <div className={`flex gap-3 rounded-2xl border px-4 py-3 text-xs ${
+            !isOnline || pendingCount > 0
+              ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
+              : "border-red-500/20 bg-red-500/10 text-red-400"
+          }`}>
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{syncError}</span>
+          </div>
+        )}
+
+        {!syncError && inventorySource === "cache" && !isOnline && (
+          <div className="flex gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>Mode hors-ligne — inventaire chargé depuis le cache local.</span>
           </div>
         )}
 
@@ -700,13 +767,31 @@ export default function App() {
               </div>
               <div
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  syncError 
-                    ? "bg-red-500/10 border border-red-500/20 text-red-400" 
-                    : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                  !isOnline
+                    ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                    : pendingCount > 0
+                      ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                      : syncError
+                        ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                        : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
                 }`}
               >
-                <span className={`w-1 h-1 rounded-full ${syncError ? 'bg-red-400' : 'bg-emerald-400'}`} />
-                {syncError ? "Supabase Off" : "Synchro On"}
+                <span className={`w-1 h-1 rounded-full ${
+                  !isOnline
+                    ? "bg-red-400"
+                    : pendingCount > 0
+                      ? "bg-amber-400 animate-pulse"
+                      : syncError
+                        ? "bg-red-400"
+                        : "bg-emerald-400"
+                }`} />
+                {!isOnline
+                  ? "Hors-ligne"
+                  : pendingCount > 0
+                    ? `${pendingCount} en attente`
+                    : syncError
+                      ? "Supabase Off"
+                      : "Synchro On"}
               </div>
             </div>
 

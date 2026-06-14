@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem, InventoryItem } from '../types';
 import { upsertCategory, deleteCategory } from '../lib/supabaseCategories';
 import { suggestCategory } from '../lib/autoCategorization';
-import { upsertInventoryItem } from '../lib/supabaseInventory';
+import { syncInventoryItem } from '../lib/inventorySync';
 import { triggerHaptic } from '../lib/haptics';
 
 interface CategoriesManagerProps {
@@ -122,7 +122,7 @@ export function CategoriesManager({
               category: suggested,
               lastUpdated: Date.now()
             };
-            await upsertInventoryItem(updatedItem);
+            await syncInventoryItem(updatedItem);
             updatedCount++;
           }
         }
