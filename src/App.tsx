@@ -68,6 +68,7 @@ export default function App() {
     "recent" | "name" | "quantityAsc" | "quantityDesc"
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
+  const [isBatchMode, setIsBatchMode] = useState(false);
 
   // Check session on mount
   useEffect(() => {
@@ -154,7 +155,72 @@ export default function App() {
 
       setLoadingBarcode(barcode);
 
-      // Check if already in local state: open choice modal
+      // Check if already in local state: open choice modal (or increment immediately if in batch mode)
+      if (isBatchMode) {
+        const existingItem = inventory.find((i) => i.barcode === barcode);
+        if (existingItem) {
+          const updatedItem = {
+            ...existingItem,
+            quantity: existingItem.quantity + 1,
+            lastUpdated: Date.now(),
+          };
+          try {
+            await syncItem(updatedItem);
+            showToast(`+1 ${existingItem.name} (Total : ${updatedItem.quantity})`);
+          } catch (error) {
+            console.error("Erreur de synchronisation Supabase (Batch Mode):", error);
+            showToast("Erreur de synchronisation");
+          } finally {
+            setLoadingBarcode(null);
+          }
+          return;
+        }
+
+        try {
+          const databaseItem = isSupabaseConfigured
+            ? await fetchInventoryItemByBarcode(barcode)
+            : null;
+          if (databaseItem) {
+            const updatedItem = {
+              ...databaseItem,
+              quantity: databaseItem.quantity + 1,
+              lastUpdated: Date.now(),
+            };
+            await syncItem(updatedItem);
+            showToast(`+1 ${databaseItem.name} (Total : ${updatedItem.quantity})`);
+            setLoadingBarcode(null);
+            return;
+          }
+
+          const data = await getProductData(barcode);
+          if (data) {
+            const item: InventoryItem = {
+              barcode,
+              name: data.name,
+              imageUrl: data.imageUrl,
+              brand: data.brand,
+              category: data.category,
+              quantity: 1,
+              lastUpdated: Date.now(),
+            };
+            await syncItem(item);
+            showToast(`${data.name} ajouté (+1)`);
+          } else {
+            // Not found, open manual creation modal
+            setActionModal({
+              type: "manual",
+              barcode: barcode,
+            });
+          }
+        } catch (error) {
+          console.error("Erreur de recherche/sync produit (Batch Mode):", error);
+          showToast("Erreur de recherche produit");
+        } finally {
+          setLoadingBarcode(null);
+        }
+        return;
+      }
+
       const existingItem = inventory.find((i) => i.barcode === barcode);
       if (existingItem) {
         setActionModal({
@@ -205,7 +271,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal, session],
+    [inventory, loadingBarcode, actionModal, session, isBatchMode],
   );
 
   // Hook for physical hardware scanners globally
@@ -613,6 +679,29 @@ export default function App() {
                 <span className={`w-1 h-1 rounded-full ${syncError ? 'bg-red-400' : 'bg-emerald-400'}`} />
                 {syncError ? "Supabase Off" : "Synchro On"}
               </div>
+            </div>
+
+            {/* Mode Scan en Lot (Batch Mode) */}
+            <div className="mb-5 flex items-center justify-between p-3.5 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+              <div>
+                <h3 className="text-xs font-bold text-white">Mode Scan en Lot</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBatchMode(!isBatchMode)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                  isBatchMode ? "bg-indigo-600" : "bg-slate-850"
+                }`}
+                role="switch"
+                aria-checked={isBatchMode}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    isBatchMode ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
             <div className="relative">
