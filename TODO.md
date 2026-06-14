@@ -1,0 +1,8 @@
+- [ ] Ajouter tokens UI + mode sombre (instantané) dans src/index.css
+- [ ] Ajouter design-system components (Skeleton/Empty/Error/Buttons/TabBar/BottomSheet/Dialog)
+- [ ] Refactor Header vers composants design-system
+- [ ] Refactor InventoryGrid vers ProductCard + EmptyState/Skeleton
+- [ ] Refactor App: TabBar + BottomSheet pour filtres, harmonisation states
+- [ ] Améliorer Toast (variants + aria-live)
+- [ ] Ajouter SplashScreen
+- [ ] Vérifier build/dev

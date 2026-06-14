@@ -41,6 +41,8 @@ import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
 import { useOfflineSync } from "./hooks/useOfflineSync";
 import { triggerHaptic } from "./lib/haptics";
+import { TabBar, TabKey } from "./design-system/components/TabBar";
+import { BottomSheet } from "./design-system/components/BottomSheet";
 
 
 type ActionModalState =
@@ -1040,13 +1042,19 @@ export default function App() {
             </div>
 
             {/* Expanded Filters Drawer */}
-            {showFilters && (
+            <BottomSheet
+              open={showFilters}
+              title="Filtres"
+              onClose={() => setShowFilters(false)}
+            >
               <div className="grid grid-cols-2 gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs">
                 <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
                   <span className="font-semibold text-stone-500">Trier par</span>
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
+                    onChange={(e) =>
+                      setSortBy((e.target as HTMLSelectElement).value as any)
+                    }
                     className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
                   >
                     <option value="recent">Date d'ajout</option>
@@ -1060,7 +1068,11 @@ export default function App() {
                   <span className="font-semibold text-stone-500">État du Stock</span>
                   <select
                     value={stockFilter}
-                    onChange={(e) => setStockFilter(e.target.value as any)}
+                    onChange={(e) =>
+                      setStockFilter(
+                        (e.target as HTMLSelectElement).value as any
+                      )
+                    }
                     className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
                   >
                     <option value="all">Tous les articles</option>
@@ -1068,9 +1080,9 @@ export default function App() {
                     <option value="low">Stock faible (≤ 5)</option>
                     <option value="out">Rupture de stock (0)</option>
                   </select>
-                </div>
+            </div>
               </div>
-            )}
+            </BottomSheet>
 
             {isInventoryLoading ? (
               <div className="flex flex-col items-center justify-center gap-3 py-12 text-stone-500 border border-dashed border-stone-300 rounded-2xl bg-stone-50/50">
@@ -1111,45 +1123,10 @@ export default function App() {
       </main>
 
       {/* Modern Fixed Bottom Tab Bar Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t pb-safe">
-        <div className="mx-auto max-w-lg flex justify-around py-3">
-          <button
-            onClick={() => setActiveTab("scan")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "scan" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'scan' ? 'bg-indigo-50' : ''}`}>
-              <Scan className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] font-bold tracking-wide">Scanner</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("stock")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "stock" ? "text-emerald-600" : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'stock' ? 'bg-emerald-50' : ''}`}>
-              <Package className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] font-bold tracking-wide">Stock</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("categories")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
-              activeTab === "categories" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
-            }`}
-          >
-            <div className={`p-1.5 rounded-xl transition ${activeTab === 'categories' ? 'bg-indigo-50' : ''}`}>
-              <Tags className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] font-bold tracking-wide">Catégories</span>
-          </button>
-        </div>
-      </nav>
+      <TabBar
+        active={activeTab as TabKey}
+        onChange={(t) => setActiveTab(t as any)}
+      />
 
       {/* Modals & toast */}
       {actionModal?.type === "manual" && (
