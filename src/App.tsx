@@ -78,21 +78,44 @@ export default function App() {
     }, 3000);
   };
 
+  const addScannedProduct = useCallback(async (
+    product: InventoryItem | ({ barcode: string } & ProductLookupData),
+    quantityToAdd = 1,
+  ) => {
+    const existingItem = inventory.find(item => item.barcode === product.barcode);
+    const databaseQuantity = 'quantity' in product ? product.quantity : 0;
+    const currentQuantity = existingItem?.quantity ?? databaseQuantity;
+    const item: InventoryItem = {
+      barcode: product.barcode,
+      name: product.name,
+      imageUrl: product.imageUrl,
+      brand: product.brand,
+      category: product.category,
+      quantity: currentQuantity + quantityToAdd,
+      lastUpdated: Date.now()
+    };
+
+    await syncItem(item);
+    showToast(`+${quantityToAdd} ${product.name}`);
+  }, [inventory]);
+
   const handleScan = useCallback(async (barcode: string) => {
     if (!barcode || loadingBarcode || actionModal) return;
     
     setLoadingBarcode(barcode);
 
-    // Check if already in inventory
-    const existingIndex = inventory.findIndex(i => i.barcode === barcode);
-    if (existingIndex >= 0) {
-      setActionModal({
-        type: 'quantity',
-        product: inventory[existingIndex],
-        existingQty: inventory[existingIndex].quantity,
-        isNew: false
-      });
-      setLoadingBarcode(null);
+    // Check if already in inventory and validate the scan immediately with quantity 1.
+    const existingItem = inventory.find(i => i.barcode === barcode);
+    if (existingItem) {
+      try {
+        await addScannedProduct(existingItem);
+      } catch (error) {
+        console.error('Erreur de synchronisation Supabase:', error);
+        setSyncError(error instanceof Error ? error.message : 'Impossible de synchroniser cet article.');
+        showToast('Erreur de synchronisation Supabase');
+      } finally {
+        setLoadingBarcode(null);
+      }
       return;
     }
 
@@ -100,24 +123,13 @@ export default function App() {
       // Not in local state: check Supabase first, then enrich from OpenFoodFacts.
       const databaseItem = isSupabaseConfigured ? await fetchInventoryItemByBarcode(barcode) : null;
       if (databaseItem) {
-        setInventory(prev => [databaseItem, ...prev.filter(i => i.barcode !== barcode)]);
-        setActionModal({
-          type: 'quantity',
-          product: databaseItem,
-          existingQty: databaseItem.quantity,
-          isNew: false
-        });
+        await addScannedProduct(databaseItem);
         return;
       }
 
       const data = await getProductData(barcode);
       if (data) {
-        setActionModal({
-          type: 'quantity',
-          product: { barcode, ...data },
-          existingQty: 0,
-          isNew: true
-        });
+        await addScannedProduct({ barcode, ...data });
       } else {
         // Not found, open manual creation modal
         setActionModal({
@@ -132,7 +144,7 @@ export default function App() {
     } finally {
       setLoadingBarcode(null);
     }
-  }, [inventory, loadingBarcode, actionModal]);
+  }, [inventory, loadingBarcode, actionModal, addScannedProduct]);
 
   // Hook for physical hardware scanners globally
   useHardwareScanner(handleScan);
