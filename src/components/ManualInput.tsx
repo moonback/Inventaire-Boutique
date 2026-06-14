@@ -1,5 +1,5 @@
 import { useState, KeyboardEvent, useEffect, useRef, useCallback } from "react";
-import { Scan, CornerDownLeft, Zap } from "lucide-react";
+import { CornerDownLeft } from "lucide-react";
 
 const SCANNER_AUTO_SUBMIT_DELAY_MS = 120;
 const MIN_BARCODE_LENGTH = 8;
@@ -62,16 +62,16 @@ export function ManualInput({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-inner shadow-slate-100">
-      <label className="mb-2 flex items-center gap-2 px-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-        <Zap className="h-3.5 w-3.5 text-blue-500" />
+    <div className="space-y-2">
+      <label
+        className="block text-sm font-medium text-slate-700"
+        htmlFor="barcode-input"
+      >
         Code-barres
       </label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <Scan className="h-5 w-5 text-blue-500" />
-        </div>
+      <div className="flex gap-2">
         <input
+          id="barcode-input"
           ref={inputRef}
           type="text"
           inputMode="numeric"
@@ -79,23 +79,22 @@ export function ManualInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="block h-16 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-16 text-lg font-bold tracking-wide text-slate-950 shadow-sm outline-none transition placeholder:font-semibold placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-xl"
-          placeholder="Saisir ou scanner..."
+          className="h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900 disabled:bg-slate-100 sm:h-11 sm:text-sm"
+          placeholder="Saisir ou scanner"
           disabled={!isActive}
         />
         <button
           type="button"
           onClick={() => submitScan(value)}
           disabled={!value.trim() || !isActive}
-          className="absolute right-2 top-2 grid h-12 w-12 place-items-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+          className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:h-11 sm:w-11"
           aria-label="Valider le code-barres"
         >
-          <CornerDownLeft className="h-5 w-5" />
+          <CornerDownLeft className="h-4 w-4" />
         </button>
       </div>
-      <p className="mt-3 px-2 text-xs font-medium leading-5 text-slate-500">
-        Astuce : un lecteur physique valide automatiquement le code. Sur mobile,
-        collez le code puis appuyez sur le bouton bleu.
+      <p className="text-xs leading-5 text-slate-500">
+        Entrée, Tab ou lecteur physique valident automatiquement le code.
       </p>
     </div>
   );
