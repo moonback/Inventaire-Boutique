@@ -5,6 +5,9 @@ const SCANNER_AUTO_SUBMIT_DELAY_MS = 120;
 const SCANNER_MAX_KEY_INTERVAL_MS = 80;
 const MIN_BARCODE_LENGTH = 8;
 
+const SCANNER_AUTO_SUBMIT_DELAY_MS = 120;
+const MIN_BARCODE_LENGTH = 8;
+
 export function ManualInput({ onScan, isActive }: { onScan: (code: string) => void; isActive: boolean }) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
