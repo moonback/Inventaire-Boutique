@@ -1016,8 +1016,8 @@ export default function App() {
                         onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
                         className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
                           selectedCategory === cat
-                            ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-                            : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 backdrop-blur-xs"
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-600/20"
+                            : "bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300"
                         }`}
                       >
                         {displayLabel} ({count})
