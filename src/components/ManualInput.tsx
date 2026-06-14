@@ -64,10 +64,10 @@ export function ManualInput({
   return (
     <div className="space-y-2">
       <label
-        className="block text-sm font-medium text-slate-700"
+        className="block text-xs font-bold uppercase tracking-wider text-slate-400"
         htmlFor="barcode-input"
       >
-        Code-barres
+        Code-barres produit
       </label>
       <div className="flex gap-2">
         <input
@@ -79,22 +79,22 @@ export function ManualInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-900 disabled:bg-slate-100 sm:h-11 sm:text-sm"
-          placeholder="Saisir ou scanner"
+          className="h-12 min-w-0 flex-1 rounded-xl bg-slate-900 border border-slate-800 px-4 text-base font-semibold font-mono text-white outline-none placeholder:text-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition disabled:opacity-40 sm:h-11 sm:text-sm"
+          placeholder="Saisir ou scanner..."
           disabled={!isActive}
         />
         <button
           type="button"
           onClick={() => submitScan(value)}
           disabled={!value.trim() || !isActive}
-          className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:h-11 sm:w-11"
+          className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-500 active:scale-95 disabled:pointer-events-none disabled:opacity-40 transition sm:h-11 sm:w-11"
           aria-label="Valider le code-barres"
         >
           <CornerDownLeft className="h-4 w-4" />
         </button>
       </div>
-      <p className="text-xs leading-5 text-slate-500">
-        Entrée, Tab ou lecteur physique valident automatiquement le code.
+      <p className="text-[10px] leading-relaxed text-slate-500 font-medium">
+        Entrée, Tab ou le lecteur physique valideront automatiquement le code.
       </p>
     </div>
   );

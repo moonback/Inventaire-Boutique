@@ -20,6 +20,9 @@ import {
   Search,
   Filter,
   AlertTriangle,
+  PackageCheck,
+  PackageOpen,
+  Sparkles,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 
@@ -109,70 +112,48 @@ export default function App() {
     }, 3000);
   };
 
-  const addScannedProduct = useCallback(
-    async (
-      product: InventoryItem | ({ barcode: string } & ProductLookupData),
-      quantityToAdd = 1,
-    ) => {
-      const existingItem = inventory.find(
-        (item) => item.barcode === product.barcode,
-      );
-      const databaseQuantity = "quantity" in product ? product.quantity : 0;
-      const currentQuantity = existingItem?.quantity ?? databaseQuantity;
-      const item: InventoryItem = {
-        barcode: product.barcode,
-        name: product.name,
-        imageUrl: product.imageUrl,
-        brand: product.brand,
-        category: product.category,
-        quantity: currentQuantity + quantityToAdd,
-        lastUpdated: Date.now(),
-      };
-
-      await syncItem(item);
-      showToast(`+${quantityToAdd} ${product.name}`);
-    },
-    [inventory],
-  );
-
   const handleScan = useCallback(
     async (barcode: string) => {
       if (!barcode || loadingBarcode || actionModal) return;
 
       setLoadingBarcode(barcode);
 
-      // Check if already in inventory and validate the scan immediately with quantity 1.
+      // Check if already in local state: open quantity modal immediately
       const existingItem = inventory.find((i) => i.barcode === barcode);
       if (existingItem) {
-        try {
-          await addScannedProduct(existingItem);
-        } catch (error) {
-          console.error("Erreur de synchronisation Supabase:", error);
-          setSyncError(
-            error instanceof Error
-              ? error.message
-              : "Impossible de synchroniser cet article.",
-          );
-          showToast("Erreur de synchronisation Supabase");
-        } finally {
-          setLoadingBarcode(null);
-        }
+        setActionModal({
+          type: "quantity",
+          product: existingItem,
+          existingQty: existingItem.quantity,
+          isNew: false,
+        });
+        setLoadingBarcode(null);
         return;
       }
 
       try {
-        // Not in local state: check Supabase first, then enrich from OpenFoodFacts.
+        // Not in local state: check Supabase first, then OpenFoodFacts.
         const databaseItem = isSupabaseConfigured
           ? await fetchInventoryItemByBarcode(barcode)
           : null;
         if (databaseItem) {
-          await addScannedProduct(databaseItem);
+          setActionModal({
+            type: "quantity",
+            product: databaseItem,
+            existingQty: databaseItem.quantity,
+            isNew: false,
+          });
           return;
         }
 
         const data = await getProductData(barcode);
         if (data) {
-          await addScannedProduct({ barcode, ...data });
+          setActionModal({
+            type: "quantity",
+            product: { barcode, ...data },
+            existingQty: 0,
+            isNew: true,
+          });
         } else {
           // Not found, open manual creation modal
           setActionModal({
@@ -192,7 +173,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal, addScannedProduct],
+    [inventory, loadingBarcode, actionModal],
   );
 
   // Hook for physical hardware scanners globally
@@ -236,6 +217,7 @@ export default function App() {
       try {
         await deleteInventoryItem(barcode);
         setSyncError(null);
+        showToast("Article supprimé");
       } catch (error) {
         console.error("Erreur de suppression Supabase:", error);
         setInventory(previousInventory);
@@ -280,32 +262,34 @@ export default function App() {
     }
   };
 
-  const handleQuantitySave = async (quantityToAdd: number) => {
+  const handleQuantitySave = async (quantity: number, mode: "add" | "set") => {
     if (actionModal?.type === "quantity") {
       const { product, isNew } = actionModal;
       const existingItem = inventory.find(
         (item) => item.barcode === product.barcode,
       );
-      const item: InventoryItem =
-        isNew || !existingItem
-          ? {
-              barcode: product.barcode,
-              name: product.name,
-              imageUrl: product.imageUrl,
-              brand: product.brand,
-              category: product.category,
-              quantity: quantityToAdd,
-              lastUpdated: Date.now(),
-            }
-          : {
-              ...existingItem,
-              quantity: existingItem.quantity + quantityToAdd,
-              lastUpdated: Date.now(),
-            };
+
+      const newQuantity = mode === "set"
+        ? quantity
+        : (existingItem?.quantity ?? 0) + quantity;
+
+      const item: InventoryItem = {
+        barcode: product.barcode,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        brand: product.brand,
+        category: product.category,
+        quantity: Math.max(0, newQuantity),
+        lastUpdated: Date.now(),
+      };
 
       try {
         await syncItem(item);
-        showToast(`+${quantityToAdd} ${product.name}`);
+        showToast(
+          mode === "set"
+            ? `Stock défini à ${quantity} (${product.name})`
+            : `+${quantity} ${product.name}`
+        );
         setActionModal(null);
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
@@ -322,11 +306,11 @@ export default function App() {
   const handleExport = () => {
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      "Code-barres,Nom,Marque,Quantité\n" +
+      "Code-barres,Nom,Marque,Catégorie,Quantité\n" +
       inventory
         .map(
           (i) =>
-            `${i.barcode},"${i.name.replace(/"/g, '""')}","${i.brand || ""}",${i.quantity}`,
+            `${i.barcode},"${i.name.replace(/"/g, '""')}","${i.brand || ""}","${i.category || ""}",${i.quantity}`,
         )
         .join("\n");
 
@@ -373,61 +357,71 @@ export default function App() {
   }, [inventory, searchTerm, showLowStockOnly, sortBy]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 font-sans selection:bg-slate-200 pb-20">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl border border-slate-200 bg-white">
-              <Store className="h-5 w-5 text-slate-800" />
+    <div className="min-h-screen bg-[#070b13] text-slate-100 font-sans pb-32">
+      {/* Header Panel */}
+      <header className="sticky top-0 z-40 glass-panel border-b border-slate-800/80 bg-[#070b13]/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <Store className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
-                Inventaire Boutique
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+                Inventaire
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </h1>
-              <p className="text-xs text-slate-500">
-                {inventory.length} références · {totalItems} articles
+              <p className="text-[11px] text-slate-400 font-medium">
+                {inventory.length} réf. · {totalItems} articles
               </p>
             </div>
           </div>
-          {inventory.length > 0 && (
-            <button
-              onClick={handleExport}
-              className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:flex"
-            >
-              <Download className="h-4 w-4" />
-              Exporter
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {inventory.length > 0 && (
+              <button
+                onClick={handleExport}
+                className="flex items-center justify-center p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white tap-active transition"
+                title="Exporter l'inventaire en CSV"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
-        <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <main className="mx-auto max-w-lg px-4 py-5 space-y-5">
+        {/* Quick Scan Input area */}
+        <section className="glass-card rounded-[2rem] p-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-25">
+            <Sparkles className="w-5 h-5 text-indigo-400" />
+          </div>
+          
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full">
                 Saisie rapide
-              </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-                Ajouter un produit
+              </span>
+              <h2 className="mt-2 text-lg font-bold tracking-tight text-white">
+                Scanner / Ajouter
               </h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                Saisissez un code-barres ou utilisez un lecteur physique. La
-                caméra a été retirée pour garder une interface simple, fiable et
-                rapide sur mobile.
-              </p>
             </div>
             <div
-              className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-medium ${syncError ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                syncError 
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400" 
+                  : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+              }`}
             >
-              {syncError ? "Non synchronisé" : "Synchronisé"}
+              <span className={`w-1.5 h-1.5 rounded-full ${syncError ? 'bg-red-400' : 'bg-emerald-400'}`} />
+              {syncError ? "Erreur Supabase" : "Synchronisé"}
             </div>
           </div>
+
           <div className="relative">
             {loadingBarcode && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/80 text-slate-800 backdrop-blur-sm">
-                <Loader2 className="mb-2 h-6 w-6 animate-spin" />
-                <span className="text-sm font-medium">
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0f172a]/90 border border-slate-800 text-slate-200 backdrop-blur-xs">
+                <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-400" />
+                <span className="text-xs font-semibold tracking-wider font-mono">
                   Recherche {loadingBarcode}...
                 </span>
               </div>
@@ -439,90 +433,91 @@ export default function App() {
           </div>
         </section>
 
-        <section className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-medium text-slate-500">Références</p>
-            <p className="mt-1 text-2xl font-semibold">{inventory.length}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-medium text-slate-500">Articles</p>
-            <p className="mt-1 text-2xl font-semibold">{totalItems}</p>
-          </div>
-          <div className="col-span-2 rounded-2xl border border-slate-200 bg-white p-4 sm:col-span-1">
-            <p className="text-xs font-medium text-slate-500">Stock faible</p>
-            <p className="mt-1 text-2xl font-semibold">
-              {inventory.filter((item) => item.quantity <= 5).length}
-            </p>
-          </div>
-        </section>
-
+        {/* Sync error display */}
         {syncError && (
-          <div className="mb-5 flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{syncError}</span>
           </div>
         )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Fast Stats Row */}
+        <section className="grid grid-cols-3 gap-3">
+          <div className="glass-card rounded-2xl p-3.5 text-center">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Références</p>
+            <p className="mt-1 text-xl font-bold text-white">{inventory.length}</p>
+          </div>
+          <div className="glass-card rounded-2xl p-3.5 text-center">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Quantité</p>
+            <p className="mt-1 text-xl font-bold text-white">{totalItems}</p>
+          </div>
+          <div className="glass-card rounded-2xl p-3.5 text-center bg-amber-500/5 border border-amber-500/10">
+            <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">Stock Faible</p>
+            <p className="mt-1 text-xl font-bold text-amber-400">
+              {inventory.filter((item) => item.quantity <= 5).length}
+            </p>
+          </div>
+        </section>
+
+        {/* Products Search & List */}
+        <section className="glass-card rounded-[2rem] p-5 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">
-                Articles en stock
+              <h2 className="text-base font-bold tracking-tight text-white">
+                Articles en Stock
               </h2>
-              <p className="text-sm text-slate-500">
-                Gérez les quantités et les alertes de stock.
+              <p className="text-xs text-slate-400 font-medium">
+                Gérez les quantités et les catégories
               </p>
             </div>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Rechercher"
+                  placeholder="Rechercher..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-slate-400"
+                  className="h-10 w-full rounded-xl bg-slate-900/60 border border-slate-800 pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
                 />
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl border transition ${showFilters ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
-                title="Filtres avancés"
+                className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
+                  showFilters 
+                    ? "border-indigo-500 bg-indigo-600 text-white" 
+                    : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
+                }`}
+                title="Filtres"
               >
                 <Filter className="h-4 w-4" />
               </button>
-              {inventory.length > 0 && (
-                <button
-                  onClick={handleExport}
-                  className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:hidden"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-              )}
             </div>
           </div>
 
+          {/* Expanded Filters Drawer */}
           {showFilters && (
-            <div className="mb-5 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
-              <label className="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-[auto_1fr] sm:items-center">
-                Trier par
+            <div className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs">
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold text-slate-400">Trier par</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 text-sm text-slate-700 outline-none focus:border-slate-400"
+                  className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
                 >
                   <option value="recent">Date d'ajout</option>
                   <option value="name">Alphabétique (A-Z)</option>
                   <option value="quantityAsc">Quantité croissante</option>
                   <option value="quantityDesc">Quantité décroissante</option>
                 </select>
-              </label>
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              </div>
+              <label className="flex items-center gap-2 font-medium text-slate-300 select-none cursor-pointer mt-1">
                 <input
                   type="checkbox"
                   checked={showLowStockOnly}
                   onChange={(e) => setShowLowStockOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950"
                 />
                 Stock faible uniquement (≤ 5)
               </label>
@@ -530,10 +525,10 @@ export default function App() {
           )}
 
           {isInventoryLoading ? (
-            <div className="flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 py-12 text-slate-700">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm font-medium">
-                Chargement de l’inventaire Supabase...
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-400 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+              <span className="text-xs font-semibold tracking-wider">
+                Chargement de l’inventaire...
               </span>
             </div>
           ) : (
@@ -541,6 +536,12 @@ export default function App() {
               items={filteredInventory}
               onUpdateQuantity={handleUpdateQuantity}
               onRemove={handleRemoveItem}
+              onEditQuantity={(item) => setActionModal({
+                type: "quantity",
+                product: item,
+                existingQty: item.quantity,
+                isNew: false,
+              })}
             />
           )}
         </section>
