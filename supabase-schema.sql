@@ -30,3 +30,10 @@ create policy "Allow public inventory deletes"
   on public.inventory_items
   for delete
   using (true);
+
+-- MIGRATION: AJOUT DES CHAMPS DE PRIX (PRIX D'ACHAT ET DE VENTE)
+-- Exécutez ces lignes dans l'éditeur SQL de Supabase si la table existe déjà :
+--
+-- ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS purchase_price numeric check (purchase_price >= 0);
+-- ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS sales_price numeric check (sales_price >= 0);
+

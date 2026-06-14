@@ -275,6 +275,8 @@ export default function App() {
         category: product.category,
         quantity,
         lastUpdated: Date.now(),
+        purchasePrice: product.purchasePrice,
+        salesPrice: product.salesPrice,
       };
 
       try {
@@ -307,6 +309,8 @@ export default function App() {
         category: product.category,
         quantity,
         lastUpdated: Date.now(),
+        purchasePrice: product.purchasePrice,
+        salesPrice: product.salesPrice,
       };
 
       try {
@@ -344,6 +348,8 @@ export default function App() {
         category: product.category,
         quantity: Math.max(0, newQuantity),
         lastUpdated: Date.now(),
+        purchasePrice: product.purchasePrice,
+        salesPrice: product.salesPrice,
       };
 
       try {
@@ -392,6 +398,23 @@ export default function App() {
 
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
   const lowStockCount = inventory.filter((item) => item.quantity <= 5).length;
+
+  const financialStats = useMemo(() => {
+    let totalPurchaseVal = 0;
+    let totalSalesVal = 0;
+    inventory.forEach((item) => {
+      const qty = item.quantity;
+      const purchase = item.purchasePrice ?? 0;
+      const sales = item.salesPrice ?? 0;
+      totalPurchaseVal += qty * purchase;
+      totalSalesVal += qty * sales;
+    });
+    return {
+      totalPurchaseVal,
+      totalSalesVal,
+      potentialMargin: totalSalesVal - totalPurchaseVal,
+    };
+  }, [inventory]);
 
   // Extract list of unique categories dynamically
   const categories = useMemo(() => {
@@ -614,6 +637,22 @@ export default function App() {
                   >
                     <Filter className="h-4 w-4" />
                   </button>
+                </div>
+              </div>
+
+              {/* Financial Stats Summary */}
+              <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950/40 border border-slate-800/60 rounded-2xl">
+                <div className="text-center">
+                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Achat Total</span>
+                  <span className="font-mono text-xs font-bold text-slate-300">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
+                </div>
+                <div className="text-center border-x border-slate-800/80">
+                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">CA Potentiel</span>
+                  <span className="font-mono text-xs font-bold text-indigo-300">{financialStats.totalSalesVal.toFixed(2)} €</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Marge Brute</span>
+                  <span className="font-mono text-xs font-bold text-emerald-400">{financialStats.potentialMargin.toFixed(2)} €</span>
                 </div>
               </div>
               

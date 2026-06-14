@@ -15,6 +15,8 @@ interface SupabaseInventoryRow {
   brand: string | null;
   category: string | null;
   last_updated: number;
+  purchase_price: number | null;
+  sales_price: number | null;
 }
 
 function getRestUrl(path = '') {
@@ -52,6 +54,8 @@ function toRow(item: InventoryItem): SupabaseInventoryRow {
     brand: item.brand ?? null,
     category: item.category ?? null,
     last_updated: item.lastUpdated,
+    purchase_price: item.purchasePrice ?? null,
+    sales_price: item.salesPrice ?? null,
   };
 }
 
@@ -64,6 +68,8 @@ function toInventoryItem(row: SupabaseInventoryRow): InventoryItem {
     brand: row.brand ?? undefined,
     category: row.category ?? undefined,
     lastUpdated: row.last_updated,
+    purchasePrice: row.purchase_price ?? undefined,
+    salesPrice: row.sales_price ?? undefined,
   };
 }
 

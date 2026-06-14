@@ -10,8 +10,20 @@ interface ManualProductModalProps {
     category?: string;
     quantity: number;
     imageUrl?: string;
+    purchasePrice?: number;
+    salesPrice?: number;
   };
-  onSave: (product: { name: string; brand?: string; category?: string; imageUrl?: string }, quantity: number) => void;
+  onSave: (
+    product: {
+      name: string;
+      brand?: string;
+      category?: string;
+      imageUrl?: string;
+      purchasePrice?: number;
+      salesPrice?: number;
+    },
+    quantity: number
+  ) => void;
   onCancel: () => void;
 }
 
@@ -21,6 +33,8 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
   const [brand, setBrand] = useState(initialValues?.brand ?? '');
   const [category, setCategory] = useState(initialValues?.category ?? '');
   const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl ?? '');
+  const [purchasePrice, setPurchasePrice] = useState(initialValues?.purchasePrice !== undefined ? String(initialValues.purchasePrice) : '');
+  const [salesPrice, setSalesPrice] = useState(initialValues?.salesPrice !== undefined ? String(initialValues.salesPrice) : '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!initialValues;
@@ -34,11 +48,15 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
   const handleSave = () => {
     const num = parseInt(qty, 10);
     if (name.trim() && !isNaN(num) && num >= 0) {
+      const pPrice = purchasePrice.trim() !== '' ? parseFloat(purchasePrice) : undefined;
+      const sPrice = salesPrice.trim() !== '' ? parseFloat(salesPrice) : undefined;
       onSave({
         name: name.trim(),
         brand: brand.trim() || undefined,
         category: category.trim() || undefined,
         imageUrl: imageUrl.trim() || undefined,
+        purchasePrice: pPrice !== undefined && !isNaN(pPrice) ? pPrice : undefined,
+        salesPrice: sPrice !== undefined && !isNaN(sPrice) ? sPrice : undefined,
       }, num);
     }
   };
@@ -141,6 +159,34 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                 className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
                 placeholder="Ex: https://..."
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Prix d'achat (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={purchasePrice}
+                  onChange={e => setPurchasePrice(e.target.value)}
+                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  placeholder="Ex: 10.50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Prix de vente (€)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={salesPrice}
+                  onChange={e => setSalesPrice(e.target.value)}
+                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  placeholder="Ex: 15.00"
+                />
+              </div>
             </div>
 
             <div>

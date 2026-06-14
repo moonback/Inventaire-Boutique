@@ -3,6 +3,8 @@ export interface ProductLookupData {
   imageUrl?: string;
   brand?: string;
   category?: string;
+  purchasePrice?: number;
+  salesPrice?: number;
 }
 
 export interface InventoryItem extends ProductLookupData {
@@ -13,4 +15,6 @@ export interface InventoryItem extends ProductLookupData {
   brand?: string;
   category?: string;
   lastUpdated: number;
+  purchasePrice?: number;
+  salesPrice?: number;
 }

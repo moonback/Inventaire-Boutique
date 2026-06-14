@@ -108,6 +108,25 @@ export function InventoryGrid({
                         {item.brand}
                       </p>
                     )}
+                    {(item.purchasePrice !== undefined || item.salesPrice !== undefined) && (
+                      <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-medium text-slate-400">
+                        {item.purchasePrice !== undefined && item.purchasePrice !== null && (
+                          <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
+                            Achat: <span className="font-mono font-bold text-slate-300">{item.purchasePrice.toFixed(2)} €</span>
+                          </span>
+                        )}
+                        {item.salesPrice !== undefined && item.salesPrice !== null && (
+                          <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
+                            Vente: <span className="font-mono font-bold text-indigo-300">{item.salesPrice.toFixed(2)} €</span>
+                          </span>
+                        )}
+                        {item.purchasePrice !== undefined && item.salesPrice !== undefined && item.purchasePrice !== null && item.salesPrice !== null && (
+                          <span className="bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 text-emerald-400">
+                            Marge: <span className="font-mono font-bold">{(item.salesPrice - item.purchasePrice).toFixed(2)} €</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

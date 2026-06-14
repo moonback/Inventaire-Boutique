@@ -22,6 +22,6 @@ Cette feuille de route détaille l'état actuel du développement et les prochai
 ---
 
 ## 🟦 Phase 3 : Statistiques, Audit & Impression (Futur)
-- [ ] **Valorisation du Stock & Calculs de Marges** : Ajout de champs de prix d'achat et prix de vente sur les fiches produits afin d'obtenir la valeur monétaire du stock et le chiffre d'affaires potentiel.
+- [x] **Valorisation du Stock & Calculs de Marges** : Ajout de champs de prix d'achat et prix de vente sur les fiches produits afin d'obtenir la valeur monétaire du stock et le chiffre d'affaires potentiel.
 - [ ] **Historique des Mouvements (Journal d'audit)** : Suivi détaillé de toutes les transactions (ajouts, retraits, modifications de fiches) avec date, heure et utilisateur.
 - [ ] **Générateur & Impression d'Étiquettes** : Possibilité de générer des codes-barres ou QR codes internes pour les produits créés sur place ou sans emballage (vrac, artisanat).
