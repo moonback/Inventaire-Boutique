@@ -494,7 +494,7 @@ export default function App() {
         await syncItem(item);
         showToast(`Ajouté: ${product.name} (x${quantity})`);
         setActionModal(null);
-        setActiveTab("stock");
+        setActiveTab("scan");
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
@@ -576,7 +576,7 @@ export default function App() {
             : `+${quantity} ${product.name}`
         );
         setActionModal(null);
-        setActiveTab("stock");
+        setActiveTab("scan");
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
