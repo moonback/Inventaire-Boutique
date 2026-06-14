@@ -9,6 +9,8 @@ interface QuantityModalProps {
     imageUrl?: string;
     brand?: string;
     category?: string;
+    format?: string;
+    nutriScore?: string;
   };
   existingQty: number;
   isNew: boolean;
@@ -83,6 +85,20 @@ export function QuantityModal({ product, existingQty, isNew, onSave, onCancel }:
               <h3 className="font-bold text-stone-900 leading-snug truncate text-base">{product.name}</h3>
               <p className="text-xs font-mono tabular text-stone-400 mt-0.5">{product.barcode}</p>
               {product.brand && <p className="text-xs text-stone-500 mt-0.5">{product.brand}</p>}
+              {(product.format || product.nutriScore) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  {product.format && (
+                    <span className="inline-flex items-center rounded-md bg-stone-100 border border-stone-200 px-1.5 py-0.5 text-[10px] font-bold font-mono tabular text-stone-600">
+                      {product.format}
+                    </span>
+                  )}
+                  {product.nutriScore && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                      Nutri-Score {product.nutriScore.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
