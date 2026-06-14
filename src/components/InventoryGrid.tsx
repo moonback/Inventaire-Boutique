@@ -45,21 +45,21 @@ function SwipeableItem({ children, isCompact = false, onSwipeRight, onSwipeLeft 
   let iconLeft = false;
   let iconRight = false;
   if (currentX > 15) {
-    bgClass = "bg-emerald-600/35 border-emerald-500/20";
+    bgClass = "bg-emerald-100 border-emerald-300";
     iconLeft = true;
   } else if (currentX < -15) {
-    bgClass = "bg-red-600/35 border-red-500/20";
+    bgClass = "bg-rose-100 border-rose-300";
     iconRight = true;
   }
 
   return (
     <div className={`relative overflow-hidden w-full ${roundedClass}`}>
       <div className={`absolute inset-0 flex items-center justify-between px-6 transition-colors border ${roundedClass} ${bgClass}`}>
-        <div className={`flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconLeft ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`flex items-center gap-1.5 text-emerald-700 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconLeft ? 'opacity-100' : 'opacity-0'}`}>
           <Plus className="w-4 h-4 animate-pulse" />
           <span>Ajouter +1</span>
         </div>
-        <div className={`flex items-center gap-1.5 text-red-400 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconRight ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`flex items-center gap-1.5 text-rose-600 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconRight ? 'opacity-100' : 'opacity-0'}`}>
           <span>Supprimer</span>
           <Trash2 className="w-4 h-4 animate-pulse" />
         </div>
@@ -100,20 +100,20 @@ export function InventoryGrid({
 }: InventoryGridProps) {
   const renderTrendBadge = (item: InventoryItem) => {
     if (!item.lastMovement || item.lastMovement === 0) return null;
-    
+
     const isRecent = Date.now() - item.lastUpdated < 24 * 60 * 60 * 1000;
     if (!isRecent) return null;
 
     if (item.lastMovement > 0) {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-bold text-emerald-700">
           <TrendingUp className="h-3 w-3" />
           +{item.lastMovement} réappro
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[9px] font-bold text-orange-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[9px] font-bold text-orange-600">
           <TrendingDown className="h-3 w-3" />
           {item.lastMovement} sortie
         </span>
@@ -139,10 +139,10 @@ export function InventoryGrid({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-800 bg-slate-950/20 px-4 py-14 text-center">
-        <Package className="mx-auto mb-3 h-8 w-8 text-slate-600" />
-        <h3 className="font-bold text-white text-sm">Aucun produit en stock</h3>
-        <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-slate-400">
+      <div className="rounded-3xl border border-dashed border-stone-300 bg-stone-50/50 px-4 py-14 text-center">
+        <Package className="mx-auto mb-3 h-8 w-8 text-stone-300" />
+        <h3 className="font-bold text-stone-900 text-sm">Aucun produit en stock</h3>
+        <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-stone-500">
           Scannez un code-barres ou saisissez-le manuellement pour ajouter votre premier article.
         </p>
       </div>
@@ -154,14 +154,14 @@ export function InventoryGrid({
       {groupedItems.map((group) => (
         <div key={group.category} className="space-y-3 product-grid-enter">
           {/* Category Header */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">
               {(() => {
                 const catObj = categories.find(c => c.name.toLowerCase() === group.category.toLowerCase());
                 return catObj?.icon ? `${catObj.icon} ${group.category}` : group.category;
               })()}
             </h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-full">
+            <span className="text-[10px] font-bold font-mono tabular px-2 py-0.5 bg-stone-100 border border-stone-200 text-stone-500 rounded-full">
               {group.items.length}
             </span>
           </div>
@@ -178,20 +178,20 @@ export function InventoryGrid({
                     onSwipeLeft={() => onRemove(item.barcode)}
                   >
                     <article
-                      className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-2.5 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group flex items-center justify-between gap-3"
+                      className="relative overflow-hidden rounded-xl border border-stone-200 bg-white px-3 py-2.5 transition-all hover:border-stone-300 hover:shadow-sm cursor-pointer select-none group flex items-center justify-between gap-3"
                       onClick={() => onEditProduct(item)}
                     >
                       {/* Left Info Column */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4
-                            className="line-clamp-1 text-xs font-bold text-white group-hover:text-indigo-300 transition-colors"
+                            className="line-clamp-1 text-xs font-bold text-stone-900 group-hover:text-indigo-600 transition-colors"
                             title={item.name}
                           >
                             {item.name}
                           </h4>
                           {item.brand && (
-                            <span className="text-[10px] text-slate-400 font-medium truncate max-w-[80px]">
+                            <span className="text-[10px] text-stone-500 font-medium truncate max-w-[80px]">
                               • {item.brand}
                             </span>
                           )}
@@ -200,40 +200,40 @@ export function InventoryGrid({
                           )}
                           {renderTrendBadge(item)}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-500 font-medium">
-                          <span className="font-mono">{item.barcode}</span>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-stone-400 font-medium">
+                          <span className="font-mono tabular">{item.barcode}</span>
                           {item.salesPrice !== undefined && item.salesPrice !== null && (
-                            <span>• <span className="text-indigo-300 font-semibold">{item.salesPrice.toFixed(2)} €</span></span>
+                            <span>• <span className="text-indigo-600 font-semibold font-mono tabular">{item.salesPrice.toFixed(2)} €</span></span>
                           )}
                         </div>
                       </div>
 
                       {/* Right Action Column */}
-                      <div 
+                      <div
                         className="flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center rounded-lg bg-slate-950/60 border border-slate-800/80">
+                        <div className="flex items-center rounded-lg bg-stone-50 border border-stone-200">
                           <button
                             onClick={() => onUpdateQuantity(item.barcode, -1)}
-                            className="grid h-7 w-7 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                            className="grid h-7 w-7 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
                             aria-label="Diminuer la quantité"
                           >
                             <Minus className="h-2.5 w-2.5" />
                           </button>
-                          
+
                           <button
                             onClick={() => onEditQuantity(item)}
-                            className={`px-2 min-w-7 text-center text-[11px] font-bold font-mono transition active:scale-95 cursor-pointer select-none py-0.5 hover:text-indigo-400 ${
-                              item.quantity <= 5 ? "text-amber-400" : "text-white"
+                            className={`px-2 min-w-7 text-center text-[11px] font-bold font-mono tabular transition active:scale-95 cursor-pointer select-none py-0.5 hover:text-indigo-600 ${
+                              item.quantity <= 5 ? "text-amber-600" : "text-stone-900"
                             }`}
                           >
                             {item.quantity}
                           </button>
-                          
+
                           <button
                             onClick={() => onUpdateQuantity(item.barcode, 1)}
-                            className="grid h-7 w-7 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                            className="grid h-7 w-7 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
                             aria-label="Augmenter la quantité"
                           >
                             <Plus className="h-2.5 w-2.5" />
@@ -242,7 +242,7 @@ export function InventoryGrid({
 
                         <button
                           onClick={() => onRemove(item.barcode)}
-                          className="grid h-7 w-7 place-items-center rounded-lg text-slate-500 active:scale-90 hover:bg-red-500/10 hover:text-red-400 transition"
+                          className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 active:scale-90 hover:bg-rose-50 hover:text-rose-600 transition"
                           title="Supprimer l'article"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -261,12 +261,12 @@ export function InventoryGrid({
                   onSwipeLeft={() => onRemove(item.barcode)}
                 >
                   <article
-                    className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group"
+                    className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer select-none group"
                     onClick={() => onEditProduct(item)}
                   >
                     <div className="flex gap-4">
                       {/* Image Container */}
-                      <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl border border-slate-800 bg-slate-950/40 p-1.5">
+                      <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl border border-stone-200 bg-stone-50 p-1.5">
                         {item.imageUrl ? (
                           <img
                             src={item.imageUrl}
@@ -274,7 +274,7 @@ export function InventoryGrid({
                             className="h-full w-full object-contain rounded-lg"
                           />
                         ) : (
-                          <Package className="h-6 w-6 text-slate-600" />
+                          <Package className="h-6 w-6 text-stone-300" />
                         )}
                       </div>
 
@@ -282,12 +282,12 @@ export function InventoryGrid({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="font-mono text-[9px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <p className="font-mono tabular text-[9px] font-semibold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
                               {item.barcode}
-                              <Edit2 className="w-2.5 h-2.5 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <Edit2 className="w-2.5 h-2.5 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </p>
                             <h4
-                              className="mt-0.5 line-clamp-1 text-sm font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors"
+                              className="mt-0.5 line-clamp-1 text-sm font-bold text-stone-900 leading-tight group-hover:text-indigo-600 transition-colors"
                               title={item.name}
                             >
                               {item.name}
@@ -295,7 +295,7 @@ export function InventoryGrid({
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             {item.quantity <= 5 && (
-                              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
+                              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 animate-pulse">
                                 <AlertTriangle className="h-3 w-3" />
                                 Bas
                               </span>
@@ -304,25 +304,25 @@ export function InventoryGrid({
                           </div>
                         </div>
                         {item.brand && (
-                          <p className="mt-1 truncate text-xs text-slate-400 font-medium">
+                          <p className="mt-1 truncate text-xs text-stone-500 font-medium">
                             {item.brand}
                           </p>
                         )}
                         {(item.purchasePrice !== undefined || item.salesPrice !== undefined) && (
-                          <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-medium text-slate-400">
+                          <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-medium text-stone-500">
                             {item.purchasePrice !== undefined && item.purchasePrice !== null && (
-                              <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
-                                Achat: <span className="font-mono font-bold text-slate-300">{item.purchasePrice.toFixed(2)} €</span>
+                              <span className="bg-stone-50 px-2 py-0.5 rounded-md border border-stone-200">
+                                Achat: <span className="font-mono tabular font-bold text-stone-700">{item.purchasePrice.toFixed(2)} €</span>
                               </span>
                             )}
                             {item.salesPrice !== undefined && item.salesPrice !== null && (
-                              <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
-                                Vente: <span className="font-mono font-bold text-indigo-300">{item.salesPrice.toFixed(2)} €</span>
+                              <span className="bg-stone-50 px-2 py-0.5 rounded-md border border-stone-200">
+                                Vente: <span className="font-mono tabular font-bold text-indigo-600">{item.salesPrice.toFixed(2)} €</span>
                               </span>
                             )}
                             {item.purchasePrice !== undefined && item.salesPrice !== undefined && item.purchasePrice !== null && item.salesPrice !== null && (
-                              <span className="bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 text-emerald-400">
-                                Marge: <span className="font-mono font-bold">{(item.salesPrice - item.purchasePrice).toFixed(2)} €</span>
+                              <span className="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-emerald-700">
+                                Marge: <span className="font-mono tabular font-bold">{(item.salesPrice - item.purchasePrice).toFixed(2)} €</span>
                               </span>
                             )}
                           </div>
@@ -331,42 +331,42 @@ export function InventoryGrid({
                     </div>
 
                     {/* Card footer / Actions */}
-                    <div 
-                      className="mt-4 flex items-center justify-between border-t border-slate-850 pt-3"
+                    <div
+                      className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3"
                       onClick={(e) => e.stopPropagation()} // Prevent modal trigger on button clicks
                     >
-                      <div className="flex items-center rounded-xl bg-slate-950/60 border border-slate-800/85">
+                      <div className="flex items-center rounded-xl bg-stone-50 border border-stone-200">
                         <button
                           onClick={() => onUpdateQuantity(item.barcode, -1)}
-                          className="grid h-10 w-10 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                          className="grid h-10 w-10 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
                           aria-label="Diminuer la quantité"
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
-                        
+
                         {/* Clickable quantity to trigger modal directly */}
                         <button
                           onClick={() => onEditQuantity(item)}
-                          className={`px-3 min-w-10 text-center text-xs font-bold font-mono transition active:scale-95 cursor-pointer select-none py-1 hover:text-indigo-400 ${
-                            item.quantity <= 5 ? "text-amber-400" : "text-white"
+                          className={`px-3 min-w-10 text-center text-xs font-bold font-mono tabular transition active:scale-95 cursor-pointer select-none py-1 hover:text-indigo-600 ${
+                            item.quantity <= 5 ? "text-amber-600" : "text-stone-900"
                           }`}
                           title="Modifier directement le stock"
                         >
                           {item.quantity}
                         </button>
-                        
+
                         <button
                           onClick={() => onUpdateQuantity(item.barcode, 1)}
-                          className="grid h-10 w-10 place-items-center text-slate-450 active:scale-90 hover:text-white transition"
+                          className="grid h-10 w-10 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
                           aria-label="Augmenter la quantité"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      
+
                       <button
                         onClick={() => onRemove(item.barcode)}
-                        className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 active:scale-90 hover:bg-red-500/10 hover:text-red-400 transition"
+                        className="grid h-10 w-10 place-items-center rounded-xl text-stone-400 active:scale-90 hover:bg-rose-50 hover:text-rose-600 transition"
                         title="Supprimer l'article"
                       >
                         <Trash2 className="h-4 w-4" />

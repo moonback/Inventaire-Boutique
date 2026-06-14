@@ -698,8 +698,8 @@ export default function App() {
 
   if (isSessionLoading) {
     return (
-      <div className="min-h-screen bg-[#070b13] flex flex-col items-center justify-center gap-3 text-slate-400">
-        <Loader2 className="h-7 w-7 animate-spin text-indigo-400" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-stone-500">
+        <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
         <span className="text-xs font-semibold tracking-wider font-mono">
           Vérification de la session...
         </span>
@@ -712,7 +712,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070b13] text-slate-100 font-sans pb-32">
+    <div className="min-h-screen text-stone-800 font-sans pb-32">
       <Header
         email={session.email}
         inventoryLength={inventory.length}
@@ -733,8 +733,8 @@ export default function App() {
         {syncError && (
           <div className={`flex gap-3 rounded-2xl border px-4 py-3 text-xs ${
             !isOnline || pendingCount > 0
-              ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
-              : "border-red-500/20 bg-red-500/10 text-red-400"
+              ? "border-amber-200 bg-amber-50 text-amber-700"
+              : "border-rose-200 bg-rose-50 text-rose-600"
           }`}>
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{syncError}</span>
@@ -742,7 +742,7 @@ export default function App() {
         )}
 
         {!syncError && inventorySource === "cache" && !isOnline && (
-          <div className="flex gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+          <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>Mode hors-ligne — inventaire chargé depuis le cache local.</span>
           </div>
@@ -752,38 +752,38 @@ export default function App() {
         {activeTab === "scan" ? (
           /* SCAN TAB */
           <section className="glass-card rounded-[2rem] p-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3 opacity-25">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+            <div className="absolute top-0 right-0 p-3 opacity-40">
+              <Sparkles className="w-5 h-5 text-indigo-500" />
             </div>
-            
+
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
                   Scanner
                 </span>
-                <h2 className="mt-2 text-base font-bold tracking-tight text-white">
+                <h2 className="mt-2 text-base font-bold tracking-tight text-stone-900">
                   Ajouter via Code-barres
                 </h2>
               </div>
               <div
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                   !isOnline
-                    ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                    ? "bg-rose-50 border border-rose-200 text-rose-600"
                     : pendingCount > 0
-                      ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                      ? "bg-amber-50 border border-amber-200 text-amber-700"
                       : syncError
-                        ? "bg-red-500/10 border border-red-500/20 text-red-400"
-                        : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                        ? "bg-rose-50 border border-rose-200 text-rose-600"
+                        : "bg-emerald-50 border border-emerald-200 text-emerald-700"
                 }`}
               >
                 <span className={`w-1 h-1 rounded-full ${
                   !isOnline
-                    ? "bg-red-400"
+                    ? "bg-rose-500"
                     : pendingCount > 0
-                      ? "bg-amber-400 animate-pulse"
+                      ? "bg-amber-500 animate-pulse"
                       : syncError
-                        ? "bg-red-400"
-                        : "bg-emerald-400"
+                        ? "bg-rose-500"
+                        : "bg-emerald-500"
                 }`} />
                 {!isOnline
                   ? "Hors-ligne"
@@ -796,16 +796,16 @@ export default function App() {
             </div>
 
             {/* Mode Scan en Lot (Batch Mode) */}
-            <div className="mb-5 flex items-center justify-between p-3.5 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+            <div className="mb-5 flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
               <div>
-                <h3 className="text-xs font-bold text-white">Mode Scan en Lot</h3>
-                <p className="text-[10px] text-slate-400 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
+                <h3 className="text-xs font-bold text-stone-900">Mode Scan en Lot</h3>
+                <p className="text-[10px] text-stone-500 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsBatchMode(!isBatchMode)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
-                  isBatchMode ? "bg-indigo-600" : "bg-slate-850"
+                  isBatchMode ? "bg-indigo-600" : "bg-stone-300"
                 }`}
                 role="switch"
                 aria-checked={isBatchMode}
@@ -820,8 +820,8 @@ export default function App() {
 
             <div className="relative">
               {loadingBarcode && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0f172a]/95 border border-slate-800 text-slate-200 backdrop-blur-xs">
-                  <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-400" />
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/95 border border-stone-200 text-stone-700 backdrop-blur-xs">
+                  <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-600" />
                   <span className="text-xs font-semibold tracking-wider font-mono">
                     Recherche {loadingBarcode}...
                   </span>
@@ -835,25 +835,25 @@ export default function App() {
 
             {/* Recently Scanned Items List */}
             {recentlyScanned.length > 0 && (
-              <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-3">
+              <div className="mt-6 pt-5 border-t border-stone-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                     Derniers articles scannés
                   </h3>
-                  <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
                     Historique rapide
                   </span>
                 </div>
-                
+
                 <div className="flex flex-col gap-2">
                   {recentlyScanned.map((item) => (
                     <div
                       key={item.barcode}
                       onClick={() => setActionModal({ type: 'edit', product: item })}
-                      className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-2 flex items-center justify-between gap-3 hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none transition group"
+                      className="relative overflow-hidden rounded-xl border border-stone-200 bg-white px-3 py-2 flex items-center justify-between gap-3 hover:border-stone-300 hover:shadow-sm cursor-pointer select-none transition group"
                     >
                       <div className="min-w-0 flex-1 flex items-center gap-3">
-                        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-950/40 p-1">
+                        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-stone-200 bg-stone-50 p-1">
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
@@ -861,33 +861,33 @@ export default function App() {
                               className="h-full w-full object-contain rounded"
                             />
                           ) : (
-                            <Package className="h-4.5 w-4.5 text-slate-600" />
+                            <Package className="h-4.5 w-4.5 text-stone-300" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="line-clamp-1 text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
+                          <h4 className="line-clamp-1 text-xs font-bold text-stone-900 group-hover:text-indigo-600 transition-colors">
                             {item.name}
                           </h4>
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-slate-500 font-medium">
-                            <span className="font-mono">{item.barcode}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-stone-400 font-medium">
+                            <span className="font-mono tabular">{item.barcode}</span>
                             {item.brand && <span>• {item.brand}</span>}
                           </div>
                         </div>
                       </div>
 
-                      <div 
+                      <div
                         className="flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center rounded-lg bg-slate-950/60 border border-slate-800/80">
+                        <div className="flex items-center rounded-lg bg-stone-50 border border-stone-200">
                           <button
                             onClick={() => handleUpdateQuantity(item.barcode, -1)}
-                            className="grid h-6 w-6 place-items-center text-slate-400 active:scale-90 hover:text-white transition cursor-pointer"
+                            className="grid h-6 w-6 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition cursor-pointer"
                             aria-label="Diminuer la quantité"
                           >
                             <Minus className="h-2 w-2" />
                           </button>
-                          
+
                           <button
                             onClick={() => setActionModal({
                               type: "quantity",
@@ -895,16 +895,16 @@ export default function App() {
                               existingQty: item.quantity,
                               isNew: false,
                             })}
-                            className={`px-1.5 min-w-6 text-center text-[10px] font-bold font-mono py-0.5 hover:text-indigo-400 cursor-pointer ${
-                              item.quantity <= 5 ? "text-amber-400" : "text-white"
+                            className={`px-1.5 min-w-6 text-center text-[10px] font-bold font-mono tabular py-0.5 hover:text-indigo-600 cursor-pointer ${
+                              item.quantity <= 5 ? "text-amber-600" : "text-stone-900"
                             }`}
                           >
                             {item.quantity}
                           </button>
-                          
+
                           <button
                             onClick={() => handleUpdateQuantity(item.barcode, 1)}
-                            className="grid h-6 w-6 place-items-center text-slate-400 active:scale-90 hover:text-white transition cursor-pointer"
+                            className="grid h-6 w-6 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition cursor-pointer"
                             aria-label="Augmenter la quantité"
                           >
                             <Plus className="h-2 w-2" />
@@ -923,10 +923,10 @@ export default function App() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
                     Inventaire
                   </span>
-                  <h2 className="mt-2 text-base font-bold tracking-tight text-white">
+                  <h2 className="mt-2 text-base font-bold tracking-tight text-stone-900">
                     Articles en Stock
                   </h2>
                 </div>
@@ -935,7 +935,7 @@ export default function App() {
                   {hasActiveFilters && (
                     <button
                       onClick={resetFilters}
-                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1.5 rounded-xl tap-active transition"
+                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1.5 rounded-xl tap-active transition"
                     >
                       <X className="w-3 h-3" />
                       Effacer ({filteredInventory.length} restants)
@@ -945,8 +945,8 @@ export default function App() {
                     onClick={() => setIsCompactView(!isCompactView)}
                     className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
                       isCompactView
-                        ? "border-indigo-500 bg-indigo-600 text-white"
-                        : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-stone-200 bg-white text-stone-500 hover:text-stone-900 hover:border-stone-300"
                     }`}
                     title={isCompactView ? "Affichage détaillé" : "Affichage compact"}
                   >
@@ -955,9 +955,9 @@ export default function App() {
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
-                      showFilters 
-                        ? "border-indigo-500 bg-indigo-600 text-white" 
-                        : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
+                      showFilters
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-stone-200 bg-white text-stone-500 hover:text-stone-900 hover:border-stone-300"
                     }`}
                     title="Filtres"
                   >
@@ -967,29 +967,29 @@ export default function App() {
               </div>
 
               {/* Financial Stats Summary */}
-              <div className="grid grid-cols-3 gap-2 p-3 bg-slate-900/20 border border-slate-800/60 rounded-2xl backdrop-blur-xs">
+              <div className="grid grid-cols-3 gap-2 p-3 bg-stone-50 border border-stone-200 rounded-2xl">
                 <div className="text-center">
-                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Achat Total</span>
-                  <span className="font-mono text-xs font-bold text-slate-300">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
+                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Achat Total</span>
+                  <span className="font-mono tabular text-xs font-bold text-stone-700">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
                 </div>
-                <div className="text-center border-x border-slate-800/60">
-                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">CA Potentiel</span>
-                  <span className="font-mono text-xs font-bold text-indigo-300">{financialStats.totalSalesVal.toFixed(2)} €</span>
+                <div className="text-center border-x border-stone-200">
+                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">CA Potentiel</span>
+                  <span className="font-mono tabular text-xs font-bold text-indigo-600">{financialStats.totalSalesVal.toFixed(2)} €</span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Marge Brute</span>
-                  <span className="font-mono text-xs font-bold text-emerald-400">{financialStats.potentialMargin.toFixed(2)} €</span>
+                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Marge Brute</span>
+                  <span className="font-mono tabular text-xs font-bold text-emerald-600">{financialStats.potentialMargin.toFixed(2)} €</span>
                 </div>
               </div>
-              
+
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                 <input
                   type="text"
                   placeholder="Rechercher par nom, marque..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-10 w-full rounded-xl glass-input pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition"
+                  className="h-10 w-full rounded-xl glass-input pl-9 pr-3 text-xs text-stone-900 outline-none transition"
                 />
               </div>
 
@@ -1000,8 +1000,8 @@ export default function App() {
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
                       selectedCategory === null
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-                        : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 backdrop-blur-xs"
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-600/20"
+                        : "bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300"
                     }`}
                   >
                     Tout ({inventory.length})
@@ -1030,13 +1030,13 @@ export default function App() {
 
             {/* Expanded Filters Drawer */}
             {showFilters && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-800 bg-slate-900/30 backdrop-blur-xs p-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs">
                 <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
-                  <span className="font-semibold text-slate-400">Trier par</span>
+                  <span className="font-semibold text-stone-500">Trier par</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-slate-200 outline-none focus:border-indigo-500/50 transition"
+                    className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
                   >
                     <option value="recent">Date d'ajout</option>
                     <option value="name">Alphabétique (A-Z)</option>

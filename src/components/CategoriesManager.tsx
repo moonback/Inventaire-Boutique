@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Plus, Edit2, Trash2, FolderPlus, HelpCircle, RefreshCw, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, HelpCircle, RefreshCw, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem, InventoryItem } from '../types';
 import { upsertCategory, deleteCategory } from '../lib/supabaseCategories';
@@ -55,7 +55,7 @@ export function CategoriesManager({
 
       await upsertCategory(categoryToSave);
       showToast(editingCategory ? 'Catégorie modifiée !' : 'Catégorie créée !');
-      
+
       // Reset form
       setName('');
       setIcon('📦');
@@ -143,14 +143,23 @@ export function CategoriesManager({
   };
 
   return (
-    <div className="space-y-5">
+    <section className="glass-card rounded-[2rem] p-5 space-y-5">
+      <div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+          Organisation
+        </span>
+        <h2 className="mt-2 text-base font-bold tracking-tight text-stone-900">
+          Catégories
+        </h2>
+      </div>
+
       {/* Action Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-stone-50 border border-stone-200 rounded-2xl">
         <div>
-          <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
             Administration des Catégories
           </h3>
-          <p className="text-[10px] text-slate-400 mt-0.5">
+          <p className="text-[10px] text-stone-500 mt-0.5">
             Ajoutez, modifiez ou organisez les catégories de produits en base de données.
           </p>
         </div>
@@ -158,12 +167,12 @@ export function CategoriesManager({
           <button
             onClick={handleAutoCategorize}
             disabled={isAutoCategorizing || categories.length === 0}
-            className="flex-1 sm:flex-none py-2 px-3 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+            className="flex-1 sm:flex-none py-2 px-3 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-40"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isAutoCategorizing ? 'animate-spin' : ''}`} />
             Classer automatiquement
           </button>
-          
+
           <button
             onClick={() => {
               setIsAdding(true);
@@ -171,7 +180,7 @@ export function CategoriesManager({
               setName('');
               setIcon('📦');
             }}
-            className="flex-1 sm:flex-none py-2 px-3 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10"
+            className="flex-1 sm:flex-none py-2 px-3 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20"
           >
             <Plus className="w-3.5 h-3.5" />
             Nouvelle
@@ -188,15 +197,15 @@ export function CategoriesManager({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <form onSubmit={handleSave} className="p-4 rounded-2xl border border-slate-800 bg-slate-900/20 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+            <form onSubmit={handleSave} className="p-4 rounded-2xl border border-stone-200 bg-stone-50 space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
                   {editingCategory ? 'Modifier la catégorie' : 'Créer une catégorie'}
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsAdding(false)}
-                  className="text-slate-500 hover:text-white"
+                  className="text-stone-400 hover:text-stone-900"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -204,7 +213,7 @@ export function CategoriesManager({
 
               <div className="grid grid-cols-4 gap-3">
                 <div className="col-span-1">
-                  <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Icône</label>
+                  <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Icône</label>
                   <input
                     type="text"
                     maxLength={2}
@@ -215,12 +224,12 @@ export function CategoriesManager({
                   />
                 </div>
                 <div className="col-span-3">
-                  <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nom de la catégorie *</label>
+                  <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Nom de la catégorie *</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full h-10 px-3 glass-input rounded-xl text-xs font-semibold text-white outline-none transition"
+                    className="w-full h-10 px-3 glass-input rounded-xl text-xs font-semibold text-stone-900 outline-none transition"
                     placeholder="Ex: Épicerie, Boissons..."
                     required
                   />
@@ -229,15 +238,15 @@ export function CategoriesManager({
 
               {/* Common Emojis Quick Picker */}
               <div>
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Suggestions d'icônes</label>
-                <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1 bg-slate-950/20 rounded-xl border border-slate-800/40">
+                <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Suggestions d'icônes</label>
+                <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1 bg-white rounded-xl border border-stone-200">
                   {COMMON_EMOJIS.map((emoji) => (
                     <button
                       key={emoji}
                       type="button"
                       onClick={() => setIcon(emoji)}
-                      className={`w-7 h-7 flex items-center justify-center rounded-lg text-sm transition hover:bg-slate-800/50 ${
-                        icon === emoji ? 'bg-indigo-500/20 border border-indigo-500/40' : ''
+                      className={`w-7 h-7 flex items-center justify-center rounded-lg text-sm transition hover:bg-stone-100 ${
+                        icon === emoji ? 'bg-indigo-100 border border-indigo-300' : ''
                       }`}
                     >
                       {emoji}
@@ -251,14 +260,14 @@ export function CategoriesManager({
                 <button
                   type="button"
                   onClick={() => setIsAdding(false)}
-                  className="px-3 py-2 text-[10px] font-bold text-slate-400 bg-transparent border border-slate-800 hover:bg-slate-900 rounded-xl transition"
+                  className="px-3 py-2 text-[10px] font-bold text-stone-500 bg-transparent border border-stone-200 hover:bg-white rounded-xl transition"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading || !name.trim()}
-                  className="px-3 py-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition flex items-center gap-1 shadow-md shadow-indigo-600/10 disabled:opacity-40"
+                  className="px-3 py-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center gap-1 shadow-md shadow-indigo-600/20 disabled:opacity-40"
                 >
                   <Check className="w-3.5 h-3.5" />
                   Sauvegarder
@@ -271,8 +280,8 @@ export function CategoriesManager({
 
       {/* Categories Grid List */}
       {categories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-500 border border-dashed border-slate-850 rounded-2xl bg-slate-950/10">
-          <HelpCircle className="h-7 w-7 text-slate-600" />
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-stone-400 border border-dashed border-stone-300 rounded-2xl bg-stone-50/50">
+          <HelpCircle className="h-7 w-7 text-stone-300" />
           <span className="text-xs font-semibold">Aucune catégorie configurée</span>
         </div>
       ) : (
@@ -285,15 +294,15 @@ export function CategoriesManager({
             return (
               <div
                 key={category.id || category.name}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-900/10 hover:bg-slate-900/30 transition group"
+                className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm transition group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-slate-850 flex items-center justify-center text-lg shadow-sm border border-slate-800">
+                  <div className="w-9 h-9 rounded-lg bg-stone-50 flex items-center justify-center text-lg border border-stone-200">
                     {category.icon || '📦'}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-200">{category.name}</h4>
-                    <span className="text-[9px] font-bold text-slate-500">
+                    <h4 className="text-xs font-bold text-stone-800">{category.name}</h4>
+                    <span className="text-[9px] font-bold text-stone-400 font-mono tabular">
                       {count} {count > 1 ? 'articles' : 'article'}
                     </span>
                   </div>
@@ -302,14 +311,14 @@ export function CategoriesManager({
                 <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleEdit(category)}
-                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                    className="p-1.5 text-stone-400 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition"
                     title="Modifier"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(category)}
-                    className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-950/20 transition"
+                    className="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 transition"
                     title="Supprimer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -320,6 +329,6 @@ export function CategoriesManager({
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 }

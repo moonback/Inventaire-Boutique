@@ -64,7 +64,7 @@ export function ManualInput({
   return (
     <div className="space-y-2">
       <label
-        className="block text-xs font-bold uppercase tracking-wider text-slate-400"
+        className="block text-xs font-bold uppercase tracking-wider text-stone-500"
         htmlFor="barcode-input"
       >
         Code-barres produit
@@ -79,7 +79,7 @@ export function ManualInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="h-12 min-w-0 flex-1 rounded-xl glass-input px-4 text-base font-semibold font-mono text-white outline-none placeholder:text-slate-650 transition disabled:opacity-40 sm:h-11 sm:text-sm"
+          className="h-12 min-w-0 flex-1 rounded-xl glass-input px-4 text-base font-semibold font-mono tabular text-stone-900 outline-none transition disabled:opacity-40 sm:h-11 sm:text-sm"
           placeholder="Saisir ou scanner..."
           disabled={!isActive}
         />
@@ -87,13 +87,13 @@ export function ManualInput({
           type="button"
           onClick={() => submitScan(value)}
           disabled={!value.trim() || !isActive}
-          className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-500 active:scale-95 disabled:pointer-events-none disabled:opacity-40 transition sm:h-11 sm:w-11"
+          className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-indigo-600 text-white font-medium shadow-md shadow-indigo-600/25 hover:bg-indigo-700 active:scale-95 disabled:pointer-events-none disabled:opacity-40 transition sm:h-11 sm:w-11"
           aria-label="Valider le code-barres"
         >
           <CornerDownLeft className="h-4 w-4" />
         </button>
       </div>
-      <p className="text-[10px] leading-relaxed text-slate-500 font-medium">
+      <p className="text-[10px] leading-relaxed text-stone-400 font-medium">
         Entrée, Tab ou le lecteur physique valideront automatiquement le code.
       </p>
     </div>

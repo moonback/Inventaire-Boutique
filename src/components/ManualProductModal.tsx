@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { Sparkles, Check, X, Minus, Plus, Edit2, Camera, Trash2, Loader2, Wand2 } from 'lucide-react';
+import { Sparkles, Check, X, Minus, Plus, Edit2, Camera, Trash2, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { uploadProductImage } from '../lib/supabaseInventory';
 import { CategoryItem } from '../types';
@@ -39,10 +39,10 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
   const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl ?? '');
   const [purchasePrice, setPurchasePrice] = useState(initialValues?.purchasePrice !== undefined ? String(initialValues.purchasePrice) : '');
   const [salesPrice, setSalesPrice] = useState(initialValues?.salesPrice !== undefined ? String(initialValues.salesPrice) : '');
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,52 +108,52 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
   };
 
   return (
-    <div className="fixed inset-0 bg-[#070b13]/80 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-md">
+    <div className="fixed inset-0 bg-stone-900/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-        className="w-full sm:max-w-md glass-panel border-t sm:border border-slate-800 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden pb-safe"
+        className="w-full sm:max-w-md bg-white border-t sm:border border-stone-200 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl shadow-stone-900/25 overflow-hidden pb-safe max-h-[92vh] overflow-y-auto no-scrollbar"
       >
         {/* Header Drag Indicator for mobile */}
-        <div className="flex justify-center py-3 sm:hidden">
-          <div className="w-12 h-1.5 bg-slate-700 rounded-full" />
+        <div className="flex justify-center py-3 sm:hidden sticky top-0 bg-white z-10">
+          <div className="w-12 h-1.5 bg-stone-300 rounded-full" />
         </div>
 
         <div className="p-6">
           <div className="absolute top-4 right-4 hidden sm:block">
-            <button 
+            <button
               onClick={onCancel}
-              className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition"
+              className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/25">
               {isEditing ? <Edit2 className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-stone-900">
                 {isEditing ? "Modifier le produit" : "Nouveau produit"}
               </h3>
-              <p className="text-xs text-slate-400 font-medium font-mono mt-0.5">Code: {barcode}</p>
+              <p className="text-xs text-stone-500 font-medium font-mono tabular mt-0.5">Code: {barcode}</p>
             </div>
           </div>
-          
-          <p className="text-xs text-slate-400 leading-relaxed mb-5">
-            {isEditing 
+
+          <p className="text-xs text-stone-500 leading-relaxed mb-5">
+            {isEditing
               ? "Modifiez les informations du produit ci-dessous. Les changements seront synchronisés."
               : "Ce produit n'a pas été trouvé automatiquement. Veuillez renseigner ses informations."}
           </p>
-          
+
           <div className="space-y-4 mb-6">
             {/* Photo Upload / Capture Section */}
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Photo du produit</label>
-              
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500">Photo du produit</label>
+
               <div className="relative group">
                 <input
                   type="file"
@@ -163,19 +163,19 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                   className="hidden"
                   id="product-photo-upload"
                 />
-                
+
                 {imageUrl ? (
-                  <div className="relative h-28 w-full rounded-2xl border border-slate-800/80 overflow-hidden bg-slate-950/40 flex items-center justify-center">
+                  <div className="relative h-28 w-full rounded-2xl border border-stone-200 overflow-hidden bg-stone-50 flex items-center justify-center">
                     <img
                       src={imageUrl}
                       alt="Aperçu du produit"
                       className="h-full object-contain"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <div className="absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
+                        className="p-2 bg-white/95 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-900 transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Camera className="w-3.5 h-3.5" />
                         <span>Changer</span>
@@ -183,7 +183,7 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                       <button
                         type="button"
                         onClick={() => setImageUrl('')}
-                        className="p-2 bg-red-950/90 rounded-xl border border-red-500/20 text-red-400 hover:text-red-350 transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
+                        className="p-2 bg-white/95 rounded-xl border border-rose-200 text-rose-600 hover:text-rose-700 transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Supprimer</span>
@@ -195,10 +195,10 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="w-full h-28 rounded-2xl border border-dashed border-slate-800 hover:border-indigo-500/60 bg-slate-900/20 hover:bg-indigo-500/5 transition flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-slate-200 disabled:opacity-50 cursor-pointer"
+                    className="w-full h-28 rounded-2xl border border-dashed border-stone-300 hover:border-indigo-400 bg-stone-50 hover:bg-indigo-50/50 transition flex flex-col items-center justify-center gap-2 text-stone-400 hover:text-stone-600 disabled:opacity-50 cursor-pointer"
                   >
                     {isUploading ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                      <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
                     ) : (
                       <Camera className="w-5 h-5" />
                     )}
@@ -208,50 +208,50 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                   </button>
                 )}
               </div>
-              
+
               {uploadError && (
-                <p className="text-[10px] font-semibold text-red-400">{uploadError}</p>
+                <p className="text-[10px] font-semibold text-rose-600">{uploadError}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nom du produit *</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Nom du produit *</label>
               <input
                 ref={inputRef}
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && document.getElementById('brand-input')?.focus()}
-                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-stone-900 outline-none transition"
                 placeholder="Ex: Coca-Cola 33cl"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Marque</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Marque</label>
                 <input
                   id="brand-input"
                   type="text"
                   value={brand}
                   onChange={e => setBrand(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && document.getElementById('category-input')?.focus()}
-                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-stone-900 outline-none transition"
                   placeholder="Ex: Coca-Cola"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Catégorie</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Catégorie</label>
                 <select
                   id="category-input"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition bg-[#0f172a] border border-slate-800 cursor-pointer"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-stone-900 outline-none transition cursor-pointer"
                 >
-                  <option value="" className="bg-slate-950 text-slate-400">Non classé</option>
+                  <option value="">Non classé</option>
                   {categories.map(cat => (
-                    <option key={cat.name} value={cat.name} className="bg-slate-950 text-white">
+                    <option key={cat.name} value={cat.name}>
                       {cat.icon ? `${cat.icon} ` : ''}{cat.name}
                     </option>
                   ))}
@@ -261,55 +261,55 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">URL de l'image (Optionnel)</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">URL de l'image (Optionnel)</label>
               <input
                 type="text"
                 value={imageUrl}
                 onChange={e => setImageUrl(e.target.value)}
-                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold font-mono text-stone-900 outline-none transition"
                 placeholder="Ex: https://..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Prix d'achat (€)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Prix d'achat (€)</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={purchasePrice}
                   onChange={e => setPurchasePrice(e.target.value)}
-                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold font-mono tabular text-stone-900 outline-none transition"
                   placeholder="Ex: 10.50"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Prix de vente (€)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Prix de vente (€)</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={salesPrice}
                   onChange={e => setSalesPrice(e.target.value)}
-                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold font-mono tabular text-stone-900 outline-none transition"
                   placeholder="Ex: 15.00"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Stock en rayon</label>
-              <div className="relative flex items-center justify-between gap-4 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-3">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Stock en rayon</label>
+              <div className="relative flex items-center justify-between gap-4 bg-stone-50 border border-stone-200 rounded-2xl p-3">
                 <button
                   type="button"
                   onClick={() => adjustQty(-1)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 active:scale-95 border border-slate-700/80 rounded-lg transition"
+                  className="w-10 h-10 flex items-center justify-center text-stone-700 bg-white hover:bg-stone-100 active:scale-95 border border-stone-200 shadow-sm rounded-lg transition"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                
+
                 <div className="flex-1 text-center">
                   <input
                     id="qty-input"
@@ -322,7 +322,7 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                       setQty(e.target.value);
                     }}
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
-                    className="w-full bg-transparent text-white text-2xl font-bold font-mono text-center outline-none border-none focus:ring-0 p-0"
+                    className="w-full bg-transparent text-stone-900 text-2xl font-bold font-mono tabular text-center outline-none border-none focus:ring-0 p-0"
                     placeholder="1"
                   />
                 </div>
@@ -330,7 +330,7 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
                 <button
                   type="button"
                   onClick={() => adjustQty(1)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 active:scale-95 border border-slate-700/80 rounded-lg transition"
+                  className="w-10 h-10 flex items-center justify-center text-stone-700 bg-white hover:bg-stone-100 active:scale-95 border border-stone-200 shadow-sm rounded-lg transition"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -342,14 +342,14 @@ export function ManualProductModal({ barcode, categories, initialValues, onSave,
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 py-4 text-sm font-semibold text-slate-400 bg-transparent border border-slate-800 hover:bg-slate-900 hover:text-slate-200 active:scale-95 rounded-2xl transition"
+              className="flex-1 py-4 text-sm font-semibold text-stone-500 bg-transparent border border-stone-200 hover:bg-stone-50 hover:text-stone-800 active:scale-95 rounded-2xl transition"
             >
               Annuler
             </button>
             <button
               onClick={handleSave}
               disabled={!name.trim() || qty.trim() === '' || isNaN(parseInt(qty, 10)) || parseInt(qty, 10) < 0 || isUploading}
-              className="flex-1 py-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none rounded-2xl shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition"
+              className="flex-1 py-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none rounded-2xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition"
             >
               <Check className="w-4 h-4" />
               Sauvegarder

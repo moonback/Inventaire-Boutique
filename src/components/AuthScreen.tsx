@@ -53,24 +53,24 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b13] flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* App Logo & Header */}
         <div className="text-center space-y-2">
-          <div className="inline-grid h-14 w-14 place-items-center rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto">
+          <div className="inline-grid h-14 w-14 place-items-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 mx-auto">
             <Store className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Boutique</h1>
-          <p className="text-xs text-slate-400 font-medium">
+          <h1 className="text-2xl font-extrabold tracking-tight text-stone-900">Boutique</h1>
+          <p className="text-xs text-stone-500 font-medium">
             Connectez-vous pour accéder à votre inventaire
           </p>
         </div>
 
         {/* Auth Panel */}
-        <div className="glass-panel rounded-[2rem] p-6 shadow-2xl relative overflow-hidden">
+        <div className="surface-card rounded-[2rem] p-6 relative overflow-hidden">
           {/* Slide transition container for switching forms */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <h2 className="text-lg font-bold text-white mb-2">
+            <h2 className="text-lg font-bold text-stone-900 mb-2">
               {isLogin ? "Connexion" : "Créer un compte"}
             </h2>
 
@@ -80,7 +80,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-3 text-xs text-red-400"
+                  className="flex gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs text-rose-600"
                 >
                   <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>{error}</span>
@@ -92,9 +92,9 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-3 text-xs text-emerald-400"
+                  className="flex gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-xs text-emerald-600"
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 animate-pulse" />
                   <span>{successMessage}</span>
                 </motion.div>
               )}
@@ -102,17 +102,17 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
                   Adresse e-mail
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-stone-900 outline-none transition"
                     placeholder="nom@boutique.com"
                     disabled={loading}
                   />
@@ -120,17 +120,17 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
+                    className="w-full h-11 pl-10 pr-4 glass-input rounded-xl text-sm font-semibold text-stone-900 outline-none transition"
                     placeholder="••••••••"
                     disabled={loading}
                   />
@@ -141,7 +141,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-950/20 flex items-center justify-center gap-2 transition cursor-pointer select-none mt-2"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition cursor-pointer select-none mt-2"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-white" />
@@ -155,7 +155,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
           </form>
 
           {/* Toggle link */}
-          <div className="mt-5 pt-4 border-t border-slate-800/80 text-center">
+          <div className="mt-5 pt-4 border-t border-stone-200 text-center">
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
@@ -163,7 +163,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 setSuccessMessage(null);
               }}
               disabled={loading}
-              className="text-xs text-slate-400 hover:text-indigo-400 font-semibold transition"
+              className="text-xs text-stone-500 hover:text-indigo-600 font-semibold transition"
             >
               {isLogin
                 ? "Nouveau ici ? Créez un compte"
