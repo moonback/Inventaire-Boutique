@@ -20,9 +20,9 @@ import {
   Search,
   Filter,
   AlertTriangle,
-  PackageCheck,
-  PackageOpen,
   Sparkles,
+  Scan,
+  Package,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 
@@ -41,6 +41,7 @@ export default function App() {
   const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState<"scan" | "stock">("scan");
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
@@ -250,6 +251,7 @@ export default function App() {
         await syncItem(item);
         showToast(`Ajouté: ${product.name} (x${quantity})`);
         setActionModal(null);
+        setActiveTab("stock"); // Switch to stock view to see the new item
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
@@ -291,6 +293,7 @@ export default function App() {
             : `+${quantity} ${product.name}`
         );
         setActionModal(null);
+        setActiveTab("stock"); // Switch to stock view to review quantity
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
@@ -327,6 +330,7 @@ export default function App() {
   };
 
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
+  const lowStockCount = inventory.filter((item) => item.quantity <= 5).length;
 
   const filteredInventory = useMemo(() => {
     let result = [...inventory];
@@ -360,18 +364,18 @@ export default function App() {
     <div className="min-h-screen bg-[#070b13] text-slate-100 font-sans pb-32">
       {/* Header Panel */}
       <header className="sticky top-0 z-40 glass-panel border-b border-slate-800/80 bg-[#070b13]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <Store className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-                Inventaire
+                Boutique
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </h1>
-              <p className="text-[11px] text-slate-400 font-medium">
-                {inventory.length} réf. · {totalItems} articles
+              <p className="text-[10px] text-slate-400 font-medium">
+                Gestionnaire d'inventaire
               </p>
             </div>
           </div>
@@ -389,47 +393,22 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-5 space-y-5">
-        {/* Quick Scan Input area */}
-        <section className="glass-card rounded-[2rem] p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-25">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
+      <main className="mx-auto max-w-lg px-4 py-4 space-y-4">
+        {/* Compact Stats Row */}
+        <section className="flex items-center justify-between bg-slate-900/40 border border-slate-800/80 rounded-2xl p-2.5 px-4 text-[11px] font-semibold text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            <span>Réf : <strong className="text-white font-bold">{inventory.length}</strong></span>
           </div>
-          
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full">
-                Saisie rapide
-              </span>
-              <h2 className="mt-2 text-lg font-bold tracking-tight text-white">
-                Scanner / Ajouter
-              </h2>
-            </div>
-            <div
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                syncError 
-                  ? "bg-red-500/10 border border-red-500/20 text-red-400" 
-                  : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${syncError ? 'bg-red-400' : 'bg-emerald-400'}`} />
-              {syncError ? "Erreur Supabase" : "Synchronisé"}
-            </div>
+          <div className="h-3.5 w-px bg-slate-800/85" />
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Total : <strong className="text-white font-bold">{totalItems}</strong></span>
           </div>
-
-          <div className="relative">
-            {loadingBarcode && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0f172a]/90 border border-slate-800 text-slate-200 backdrop-blur-xs">
-                <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-400" />
-                <span className="text-xs font-semibold tracking-wider font-mono">
-                  Recherche {loadingBarcode}...
-                </span>
-              </div>
-            )}
-            <ManualInput
-              onScan={handleScan}
-              isActive={!loadingBarcode && !actionModal}
-            />
+          <div className="h-3.5 w-px bg-slate-800/85" />
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${lowStockCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-slate-600'}`} />
+            <span>Alerte : <strong className="text-white font-bold">{lowStockCount}</strong></span>
           </div>
         </section>
 
@@ -441,112 +420,171 @@ export default function App() {
           </div>
         )}
 
-        {/* Fast Stats Row */}
-        <section className="grid grid-cols-3 gap-3">
-          <div className="glass-card rounded-2xl p-3.5 text-center">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Références</p>
-            <p className="mt-1 text-xl font-bold text-white">{inventory.length}</p>
-          </div>
-          <div className="glass-card rounded-2xl p-3.5 text-center">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Quantité</p>
-            <p className="mt-1 text-xl font-bold text-white">{totalItems}</p>
-          </div>
-          <div className="glass-card rounded-2xl p-3.5 text-center bg-amber-500/5 border border-amber-500/10">
-            <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">Stock Faible</p>
-            <p className="mt-1 text-xl font-bold text-amber-400">
-              {inventory.filter((item) => item.quantity <= 5).length}
-            </p>
-          </div>
-        </section>
-
-        {/* Products Search & List */}
-        <section className="glass-card rounded-[2rem] p-5 space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-white">
-                Articles en Stock
-              </h2>
-              <p className="text-xs text-slate-400 font-medium">
-                Gérez les quantités et les catégories
-              </p>
+        {/* Content Tabs */}
+        {activeTab === "scan" ? (
+          /* SCAN TAB */
+          <section className="glass-card rounded-[2rem] p-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-25">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full">
+                  Scanner
+                </span>
+                <h2 className="mt-2 text-base font-bold tracking-tight text-white">
+                  Ajouter via Code-barres
+                </h2>
+              </div>
+              <div
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  syncError 
+                    ? "bg-red-500/10 border border-red-500/20 text-red-400" 
+                    : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                }`}
+              >
+                <span className={`w-1 h-1 rounded-full ${syncError ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                {syncError ? "Supabase Off" : "Synchro On"}
+              </div>
+            </div>
+
+            <div className="relative">
+              {loadingBarcode && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0f172a]/95 border border-slate-800 text-slate-200 backdrop-blur-xs">
+                  <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-400" />
+                  <span className="text-xs font-semibold tracking-wider font-mono">
+                    Recherche {loadingBarcode}...
+                  </span>
+                </div>
+              )}
+              <ManualInput
+                onScan={handleScan}
+                isActive={!loadingBarcode && !actionModal}
+              />
+            </div>
+          </section>
+        ) : (
+          /* STOCK VIEW TAB */
+          <section className="glass-card rounded-[2rem] p-5 space-y-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                    Inventaire
+                  </span>
+                  <h2 className="mt-2 text-base font-bold tracking-tight text-white">
+                    Articles en Stock
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
+                    showFilters 
+                      ? "border-indigo-500 bg-indigo-600 text-white" 
+                      : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
+                  }`}
+                  title="Filtres"
+                >
+                  <Filter className="h-4 w-4" />
+                </button>
+              </div>
+              
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Rechercher..."
+                  placeholder="Rechercher par nom, marque, catégorie..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-10 w-full rounded-xl bg-slate-900/60 border border-slate-800 pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
+                  className="h-10 w-full rounded-xl bg-slate-950/60 border border-slate-800 pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
                 />
               </div>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
-                  showFilters 
-                    ? "border-indigo-500 bg-indigo-600 text-white" 
-                    : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
-                }`}
-                title="Filtres"
-              >
-                <Filter className="h-4 w-4" />
-              </button>
             </div>
-          </div>
 
-          {/* Expanded Filters Drawer */}
-          {showFilters && (
-            <div className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs">
-              <div className="flex flex-col gap-2">
-                <span className="font-semibold text-slate-400">Trier par</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
-                >
-                  <option value="recent">Date d'ajout</option>
-                  <option value="name">Alphabétique (A-Z)</option>
-                  <option value="quantityAsc">Quantité croissante</option>
-                  <option value="quantityDesc">Quantité décroissante</option>
-                </select>
+            {/* Expanded Filters Drawer */}
+            {showFilters && (
+              <div className="grid gap-3 rounded-xl border border-slate-850 bg-slate-950/50 p-3 text-xs">
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold text-slate-400">Trier par</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="rounded-lg border border-slate-850 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
+                  >
+                    <option value="recent">Date d'ajout</option>
+                    <option value="name">Alphabétique (A-Z)</option>
+                    <option value="quantityAsc">Quantité croissante</option>
+                    <option value="quantityDesc">Quantité décroissante</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 font-medium text-slate-300 select-none cursor-pointer mt-1">
+                  <input
+                    type="checkbox"
+                    checked={showLowStockOnly}
+                    onChange={(e) => setShowLowStockOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950"
+                  />
+                  Stock faible uniquement (≤ 5)
+                </label>
               </div>
-              <label className="flex items-center gap-2 font-medium text-slate-300 select-none cursor-pointer mt-1">
-                <input
-                  type="checkbox"
-                  checked={showLowStockOnly}
-                  onChange={(e) => setShowLowStockOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950"
-                />
-                Stock faible uniquement (≤ 5)
-              </label>
-            </div>
-          )}
+            )}
 
-          {isInventoryLoading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-400 border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
-              <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-              <span className="text-xs font-semibold tracking-wider">
-                Chargement de l’inventaire...
-              </span>
-            </div>
-          ) : (
-            <InventoryGrid
-              items={filteredInventory}
-              onUpdateQuantity={handleUpdateQuantity}
-              onRemove={handleRemoveItem}
-              onEditQuantity={(item) => setActionModal({
-                type: "quantity",
-                product: item,
-                existingQty: item.quantity,
-                isNew: false,
-              })}
-            />
-          )}
-        </section>
+            {isInventoryLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-400 border border-dashed border-slate-850 rounded-2xl bg-slate-950/20">
+                <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                <span className="text-xs font-semibold tracking-wider">
+                  Chargement de l’inventaire...
+                </span>
+              </div>
+            ) : (
+              <InventoryGrid
+                items={filteredInventory}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveItem}
+                onEditQuantity={(item) => setActionModal({
+                  type: "quantity",
+                  product: item,
+                  existingQty: item.quantity,
+                  isNew: false,
+                })}
+              />
+            )}
+          </section>
+        )}
       </main>
 
+      {/* Modern Fixed Bottom Tab Bar Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#070b13]/90 backdrop-blur-lg border-t border-slate-900/80 pb-safe">
+        <div className="mx-auto max-w-lg flex justify-around py-3">
+          <button
+            onClick={() => setActiveTab("scan")}
+            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+              activeTab === "scan" ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'scan' ? 'bg-indigo-500/10' : ''}`}>
+              <Scan className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide">Scanner</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("stock")}
+            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+              activeTab === "stock" ? "text-emerald-400" : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'stock' ? 'bg-emerald-500/10' : ''}`}>
+              <Package className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide">Stock</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Modals & toast */}
       {actionModal?.type === "manual" && (
         <ManualProductModal
           barcode={actionModal.barcode}
