@@ -15,7 +15,7 @@ Cette feuille de route détaille l'état actuel du développement et les prochai
 ---
 
 ## 🟨 Phase 2 : Collaboration & Sécurité (En Cours)
-- [ ] **Synchronisation Temps Réel (WebSockets)** : Exploiter les canaux Realtime de Supabase pour synchroniser instantanément les modifications de stock sur tous les téléphones des employés simultanément.
+- [x] **Synchronisation Temps Réel (WebSockets)** : Exploiter les canaux Realtime de Supabase pour synchroniser instantanément les modifications de stock sur tous les téléphones des employés simultanément.
 - [x] **Authentification Utilisateur (Supabase Auth)** : Écrans d'identification simples pour sécuriser l'accès aux données du magasin.
 - [ ] **Gestion Multi-Boutiques / Multi-Dépôts** : Possibilité de basculer entre différents inventaires physiques depuis le même profil utilisateur.
 

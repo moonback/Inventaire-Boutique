@@ -7,7 +7,7 @@ const inventoryTable = import.meta.env.VITE_SUPABASE_INVENTORY_TABLE || 'invento
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-interface SupabaseInventoryRow {
+export interface SupabaseInventoryRow {
   barcode: string;
   name: string;
   quantity: number;
@@ -59,7 +59,7 @@ function toRow(item: InventoryItem): SupabaseInventoryRow {
   };
 }
 
-function toInventoryItem(row: SupabaseInventoryRow): InventoryItem {
+export function toInventoryItem(row: SupabaseInventoryRow): InventoryItem {
   return {
     barcode: row.barcode,
     name: row.name,

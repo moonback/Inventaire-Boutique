@@ -30,6 +30,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
+import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
 
 type ActionModalState =
   | {
@@ -209,6 +210,33 @@ export default function App() {
 
   // Hook for physical hardware scanners globally
   useHardwareScanner(handleScan);
+
+  // Real-time synchronization callbacks
+  const handleRealtimeInsert = useCallback((item: InventoryItem) => {
+    setInventory((prev) => {
+      if (prev.some((i) => i.barcode === item.barcode)) {
+        return prev.map((i) => (i.barcode === item.barcode ? item : i));
+      }
+      return [item, ...prev];
+    });
+  }, []);
+
+  const handleRealtimeUpdate = useCallback((item: InventoryItem) => {
+    setInventory((prev) =>
+      prev.map((i) => (i.barcode === item.barcode ? item : i))
+    );
+  }, []);
+
+  const handleRealtimeDelete = useCallback((barcode: string) => {
+    setInventory((prev) => prev.filter((i) => i.barcode !== barcode));
+  }, []);
+
+  useSupabaseRealtime({
+    enabled: !!session,
+    onInsert: handleRealtimeInsert,
+    onUpdate: handleRealtimeUpdate,
+    onDelete: handleRealtimeDelete,
+  });
 
   const handleUpdateQuantity = async (barcode: string, delta: number) => {
     const existingItem = inventory.find((item) => item.barcode === barcode);
