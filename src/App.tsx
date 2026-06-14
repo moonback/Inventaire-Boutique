@@ -5,14 +5,14 @@ import { InventoryGrid } from './components/InventoryGrid';
 import { ManualProductModal } from './components/ManualProductModal';
 import { QuantityModal } from './components/QuantityModal';
 import { Toast } from './components/Toast';
-import { InventoryItem } from './types';
-import { deleteInventoryItem, fetchInventoryItems, isSupabaseConfigured, upsertInventoryItem } from './lib/supabaseInventory';
+import { InventoryItem, ProductLookupData } from './types';
+import { deleteInventoryItem, fetchInventoryItemByBarcode, fetchInventoryItems, isSupabaseConfigured, upsertInventoryItem } from './lib/supabaseInventory';
 import { getProductData } from './api';
 import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2, Search, Filter } from 'lucide-react';
 import { useHardwareScanner } from './hooks/useHardwareScanner';
 
 type ActionModalState = 
-  | { type: 'quantity'; product: { barcode: string; name: string; imageUrl?: string; brand?: string; category?: string }; existingQty: number; isNew: boolean }
+  | { type: 'quantity'; product: InventoryItem | ({ barcode: string } & ProductLookupData); existingQty: number; isNew: boolean }
   | { type: 'manual'; barcode: string }
   | null;
 
@@ -96,24 +96,42 @@ export default function App() {
       return;
     }
 
-    // Not in inventory, fetch from API
-    const data = await getProductData(barcode);
-    if (data) {
-      setActionModal({
-        type: 'quantity',
-        product: { barcode, ...data },
-        existingQty: 0,
-        isNew: true
-      });
-    } else {
-      // Not found, open manual creation modal
-      setActionModal({
-        type: 'manual',
-        barcode: barcode
-      });
+    try {
+      // Not in local state: check Supabase first, then enrich from OpenFoodFacts.
+      const databaseItem = isSupabaseConfigured ? await fetchInventoryItemByBarcode(barcode) : null;
+      if (databaseItem) {
+        setInventory(prev => [databaseItem, ...prev.filter(i => i.barcode !== barcode)]);
+        setActionModal({
+          type: 'quantity',
+          product: databaseItem,
+          existingQty: databaseItem.quantity,
+          isNew: false
+        });
+        return;
+      }
+
+      const data = await getProductData(barcode);
+      if (data) {
+        setActionModal({
+          type: 'quantity',
+          product: { barcode, ...data },
+          existingQty: 0,
+          isNew: true
+        });
+      } else {
+        // Not found, open manual creation modal
+        setActionModal({
+          type: 'manual',
+          barcode: barcode
+        });
+      }
+    } catch (error) {
+      console.error('Erreur de recherche produit:', error);
+      setSyncError(error instanceof Error ? error.message : 'Impossible de rechercher ce produit.');
+      showToast('Erreur de recherche produit');
+    } finally {
+      setLoadingBarcode(null);
     }
-    
-    setLoadingBarcode(null);
   }, [inventory, loadingBarcode, actionModal]);
 
   // Hook for physical hardware scanners globally
@@ -158,18 +176,21 @@ export default function App() {
     }
   };
 
-  const handleManualProductSave = async (name: string, quantity: number) => {
+  const handleManualProductSave = async (product: ProductLookupData, quantity: number) => {
     if (actionModal?.type === 'manual') {
       const item: InventoryItem = {
         barcode: actionModal.barcode,
-        name,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        brand: product.brand,
+        category: product.category,
         quantity,
         lastUpdated: Date.now()
       };
 
       try {
         await syncItem(item);
-        showToast(`Ajouté: ${name} (x${quantity})`);
+        showToast(`Ajouté: ${product.name} (x${quantity})`);
         setActionModal(null);
       } catch (error) {
         console.error('Erreur de synchronisation Supabase:', error);
