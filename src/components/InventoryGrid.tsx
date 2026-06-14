@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { InventoryItem } from "../types";
-import { Package, Plus, Minus, Trash2, AlertTriangle } from "lucide-react";
+import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2 } from "lucide-react";
 
 interface InventoryGridProps {
   items: InventoryItem[];
   onUpdateQuantity: (barcode: string, delta: number) => void;
   onRemove: (barcode: string) => void;
   onEditQuantity: (item: InventoryItem) => void;
+  onEditProduct: (item: InventoryItem) => void;
 }
 
 export function InventoryGrid({
@@ -14,6 +15,7 @@ export function InventoryGrid({
   onUpdateQuantity,
   onRemove,
   onEditQuantity,
+  onEditProduct,
 }: InventoryGridProps) {
   const groupedItems = useMemo(() => {
     const groups: Record<string, InventoryItem[]> = {};
@@ -62,7 +64,8 @@ export function InventoryGrid({
             {group.items.map((item) => (
               <article
                 key={item.barcode}
-                className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 transition-all hover:bg-slate-900/60 hover:border-slate-700/80"
+                className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group"
+                onClick={() => onEditProduct(item)}
               >
                 <div className="flex gap-4">
                   {/* Image Container */}
@@ -82,11 +85,12 @@ export function InventoryGrid({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-mono text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <p className="font-mono text-[9px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                           {item.barcode}
+                          <Edit2 className="w-2.5 h-2.5 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
                         <h4
-                          className="mt-0.5 line-clamp-1 text-sm font-bold text-white leading-tight"
+                          className="mt-0.5 line-clamp-1 text-sm font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors"
                           title={item.name}
                         >
                           {item.name}
@@ -108,7 +112,10 @@ export function InventoryGrid({
                 </div>
 
                 {/* Card footer / Actions */}
-                <div className="mt-4 flex items-center justify-between border-t border-slate-850 pt-3">
+                <div 
+                  className="mt-4 flex items-center justify-between border-t border-slate-850 pt-3"
+                  onClick={(e) => e.stopPropagation()} // Prevent modal trigger on button clicks
+                >
                   <div className="flex items-center rounded-xl bg-slate-950/60 border border-slate-800/85">
                     <button
                       onClick={() => onUpdateQuantity(item.barcode, -1)}

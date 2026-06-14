@@ -23,6 +23,7 @@ import {
   Sparkles,
   Scan,
   Package,
+  X,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 
@@ -34,6 +35,7 @@ type ActionModalState =
       isNew: boolean;
     }
   | { type: "manual"; barcode: string }
+  | { type: "edit"; product: InventoryItem }
   | null;
 
 export default function App() {
@@ -48,12 +50,15 @@ export default function App() {
     text: string;
     id: number;
   } | null>(null);
+
+  // Filters State
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out" | "instock">("all");
   const [sortBy, setSortBy] = useState<
     "recent" | "name" | "quantityAsc" | "quantityDesc"
   >("recent");
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -251,13 +256,44 @@ export default function App() {
         await syncItem(item);
         showToast(`Ajouté: ${product.name} (x${quantity})`);
         setActionModal(null);
-        setActiveTab("stock"); // Switch to stock view to see the new item
+        setActiveTab("stock");
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
           error instanceof Error
             ? error.message
             : "Impossible d’ajouter cet article dans Supabase.",
+        );
+        showToast("Erreur de synchronisation Supabase");
+      }
+    }
+  };
+
+  const handleProductUpdateSave = async (
+    product: ProductLookupData,
+    quantity: number,
+  ) => {
+    if (actionModal?.type === "edit") {
+      const item: InventoryItem = {
+        barcode: actionModal.product.barcode,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        brand: product.brand,
+        category: product.category,
+        quantity,
+        lastUpdated: Date.now(),
+      };
+
+      try {
+        await syncItem(item);
+        showToast(`Mis à jour : ${product.name}`);
+        setActionModal(null);
+      } catch (error) {
+        console.error("Erreur de synchronisation Supabase:", error);
+        setSyncError(
+          error instanceof Error
+            ? error.message
+            : "Impossible de mettre à jour cet article.",
         );
         showToast("Erreur de synchronisation Supabase");
       }
@@ -293,7 +329,7 @@ export default function App() {
             : `+${quantity} ${product.name}`
         );
         setActionModal(null);
-        setActiveTab("stock"); // Switch to stock view to review quantity
+        setActiveTab("stock");
       } catch (error) {
         console.error("Erreur de synchronisation Supabase:", error);
         setSyncError(
@@ -332,9 +368,21 @@ export default function App() {
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
   const lowStockCount = inventory.filter((item) => item.quantity <= 5).length;
 
+  // Extract list of unique categories dynamically
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    inventory.forEach((item) => {
+      if (item.category && item.category.trim()) {
+        cats.add(item.category.trim());
+      }
+    });
+    return Array.from(cats).sort();
+  }, [inventory]);
+
   const filteredInventory = useMemo(() => {
     let result = [...inventory];
 
+    // Search filter
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(
@@ -346,10 +394,21 @@ export default function App() {
       );
     }
 
-    if (showLowStockOnly) {
-      result = result.filter((i) => i.quantity <= 5);
+    // Category filter
+    if (selectedCategory) {
+      result = result.filter((i) => i.category?.trim() === selectedCategory);
     }
 
+    // Stock state filter
+    if (stockFilter === "low") {
+      result = result.filter((i) => i.quantity <= 5 && i.quantity > 0);
+    } else if (stockFilter === "out") {
+      result = result.filter((i) => i.quantity === 0);
+    } else if (stockFilter === "instock") {
+      result = result.filter((i) => i.quantity > 5);
+    }
+
+    // Sort
     result.sort((a, b) => {
       if (sortBy === "name") return a.name.localeCompare(b.name);
       if (sortBy === "quantityAsc") return a.quantity - b.quantity;
@@ -358,7 +417,16 @@ export default function App() {
     });
 
     return result;
-  }, [inventory, searchTerm, showLowStockOnly, sortBy]);
+  }, [inventory, searchTerm, selectedCategory, stockFilter, sortBy]);
+
+  const hasActiveFilters = selectedCategory !== null || stockFilter !== "all" || searchTerm !== "";
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory(null);
+    setStockFilter("all");
+    setSortBy("recent");
+  };
 
   return (
     <div className="min-h-screen bg-[#070b13] text-slate-100 font-sans pb-32">
@@ -478,40 +546,83 @@ export default function App() {
                   </h2>
                 </div>
 
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
-                    showFilters 
-                      ? "border-indigo-500 bg-indigo-600 text-white" 
-                      : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
-                  }`}
-                  title="Filtres"
-                >
-                  <Filter className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <button
+                      onClick={resetFilters}
+                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1.5 rounded-xl tap-active transition"
+                    >
+                      <X className="w-3 h-3" />
+                      Effacer ({filteredInventory.length} restants)
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
+                      showFilters 
+                        ? "border-indigo-500 bg-indigo-600 text-white" 
+                        : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                    title="Filtres"
+                  >
+                    <Filter className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Rechercher par nom, marque, catégorie..."
+                  placeholder="Rechercher par nom, marque..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="h-10 w-full rounded-xl bg-slate-950/60 border border-slate-800 pl-9 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
                 />
               </div>
+
+              {/* Dynamic scrollable Category Filter Pills */}
+              {categories.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+                  <button
+                    onClick={() => setSelectedCategory(null)}
+                    className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
+                      selectedCategory === null
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
+                        : "bg-slate-900 border-slate-850 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    Tout ({inventory.length})
+                  </button>
+                  {categories.map((cat) => {
+                    const count = inventory.filter((i) => i.category?.trim() === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
+                          selectedCategory === cat
+                            ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
+                            : "bg-slate-900 border-slate-850 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Expanded Filters Drawer */}
             {showFilters && (
-              <div className="grid gap-3 rounded-xl border border-slate-850 bg-slate-950/50 p-3 text-xs">
-                <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-855 bg-slate-950/50 p-3 text-xs">
+                <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
                   <span className="font-semibold text-slate-400">Trier par</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="rounded-lg border border-slate-850 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
+                    className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
                   >
                     <option value="recent">Date d'ajout</option>
                     <option value="name">Alphabétique (A-Z)</option>
@@ -519,15 +630,20 @@ export default function App() {
                     <option value="quantityDesc">Quantité décroissante</option>
                   </select>
                 </div>
-                <label className="flex items-center gap-2 font-medium text-slate-300 select-none cursor-pointer mt-1">
-                  <input
-                    type="checkbox"
-                    checked={showLowStockOnly}
-                    onChange={(e) => setShowLowStockOnly(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-950"
-                  />
-                  Stock faible uniquement (≤ 5)
-                </label>
+                
+                <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+                  <span className="font-semibold text-slate-400">État du Stock</span>
+                  <select
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value as any)}
+                    className="rounded-lg border border-slate-800 bg-slate-900 p-2 text-slate-200 outline-none focus:border-indigo-500/50"
+                  >
+                    <option value="all">Tous les articles</option>
+                    <option value="instock">En stock (&gt; 5)</option>
+                    <option value="low">Stock faible (≤ 5)</option>
+                    <option value="out">Rupture de stock (0)</option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -548,6 +664,10 @@ export default function App() {
                   product: item,
                   existingQty: item.quantity,
                   isNew: false,
+                })}
+                onEditProduct={(item) => setActionModal({
+                  type: "edit",
+                  product: item,
                 })}
               />
             )}
@@ -589,6 +709,14 @@ export default function App() {
         <ManualProductModal
           barcode={actionModal.barcode}
           onSave={handleManualProductSave}
+          onCancel={() => setActionModal(null)}
+        />
+      )}
+      {actionModal?.type === "edit" && (
+        <ManualProductModal
+          barcode={actionModal.product.barcode}
+          initialValues={actionModal.product}
+          onSave={handleProductUpdateSave}
           onCancel={() => setActionModal(null)}
         />
       )}
