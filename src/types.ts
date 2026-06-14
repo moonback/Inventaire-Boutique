@@ -5,6 +5,7 @@ export interface ProductLookupData {
   category?: string;
   purchasePrice?: number;
   salesPrice?: number;
+  lastMovement?: number;
 }
 
 export interface InventoryItem extends ProductLookupData {
@@ -17,4 +18,5 @@ export interface InventoryItem extends ProductLookupData {
   lastUpdated: number;
   purchasePrice?: number;
   salesPrice?: number;
+  lastMovement?: number;
 }

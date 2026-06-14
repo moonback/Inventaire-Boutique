@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, TouchEvent } from "react";
 import { InventoryItem } from "../types";
-import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2 } from "lucide-react";
+import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2, TrendingUp, TrendingDown } from "lucide-react";
 
 interface SwipeableItemProps {
   children: React.ReactNode;
@@ -96,6 +96,29 @@ export function InventoryGrid({
   onEditQuantity,
   onEditProduct,
 }: InventoryGridProps) {
+  const renderTrendBadge = (item: InventoryItem) => {
+    if (!item.lastMovement || item.lastMovement === 0) return null;
+    
+    const isRecent = Date.now() - item.lastUpdated < 24 * 60 * 60 * 1000;
+    if (!isRecent) return null;
+
+    if (item.lastMovement > 0) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-400">
+          <TrendingUp className="h-3 w-3" />
+          +{item.lastMovement} réappro
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[9px] font-bold text-orange-400">
+          <TrendingDown className="h-3 w-3" />
+          {item.lastMovement} sortie
+        </span>
+      );
+    }
+  };
+
   const groupedItems = useMemo(() => {
     const groups: Record<string, InventoryItem[]> = {};
     items.forEach((item) => {
@@ -170,6 +193,7 @@ export function InventoryGrid({
                           {item.quantity <= 5 && (
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
                           )}
+                          {renderTrendBadge(item)}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-500 font-medium">
                           <span className="font-mono">{item.barcode}</span>
@@ -264,12 +288,15 @@ export function InventoryGrid({
                               {item.name}
                             </h4>
                           </div>
-                          {item.quantity <= 5 && (
-                            <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
-                              <AlertTriangle className="h-3 w-3" />
-                              Bas
-                            </span>
-                          )}
+                          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            {item.quantity <= 5 && (
+                              <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
+                                <AlertTriangle className="h-3 w-3" />
+                                Bas
+                              </span>
+                            )}
+                            {renderTrendBadge(item)}
+                          </div>
                         </div>
                         {item.brand && (
                           <p className="mt-1 truncate text-xs text-slate-400 font-medium">

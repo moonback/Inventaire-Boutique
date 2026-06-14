@@ -167,6 +167,7 @@ export default function App() {
             ...existingItem,
             quantity: existingItem.quantity + 1,
             lastUpdated: Date.now(),
+            lastMovement: 1,
           };
           try {
             await syncItem(updatedItem);
@@ -190,6 +191,7 @@ export default function App() {
               ...databaseItem,
               quantity: databaseItem.quantity + 1,
               lastUpdated: Date.now(),
+              lastMovement: 1,
             };
             await syncItem(updatedItem);
             triggerHaptic("success");
@@ -208,6 +210,7 @@ export default function App() {
               category: data.category,
               quantity: 1,
               lastUpdated: Date.now(),
+              lastMovement: 1,
             };
             await syncItem(item);
             triggerHaptic("success");
@@ -325,6 +328,7 @@ export default function App() {
       ...existingItem,
       quantity: Math.max(0, existingItem.quantity + delta),
       lastUpdated: Date.now(),
+      lastMovement: delta,
     };
 
     setInventory((prev) =>
@@ -385,6 +389,7 @@ export default function App() {
         lastUpdated: Date.now(),
         purchasePrice: product.purchasePrice,
         salesPrice: product.salesPrice,
+        lastMovement: quantity,
       };
 
       try {
@@ -409,6 +414,7 @@ export default function App() {
     quantity: number,
   ) => {
     if (actionModal?.type === "edit") {
+      const delta = quantity - actionModal.product.quantity;
       const item: InventoryItem = {
         barcode: actionModal.product.barcode,
         name: product.name,
@@ -419,6 +425,7 @@ export default function App() {
         lastUpdated: Date.now(),
         purchasePrice: product.purchasePrice,
         salesPrice: product.salesPrice,
+        lastMovement: delta,
       };
 
       try {
@@ -444,9 +451,11 @@ export default function App() {
         (item) => item.barcode === product.barcode,
       );
 
+      const currentQty = existingItem?.quantity ?? 0;
       const newQuantity = mode === "set"
         ? quantity
-        : (existingItem?.quantity ?? 0) + quantity;
+        : currentQty + quantity;
+      const delta = Math.max(0, newQuantity) - currentQty;
 
       const item: InventoryItem = {
         barcode: product.barcode,
@@ -458,6 +467,7 @@ export default function App() {
         lastUpdated: Date.now(),
         purchasePrice: product.purchasePrice,
         salesPrice: product.salesPrice,
+        lastMovement: delta,
       };
 
       try {
