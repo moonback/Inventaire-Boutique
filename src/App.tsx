@@ -3,6 +3,7 @@ import { ManualInput } from "./components/ManualInput";
 import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
+import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData } from "./types";
 import {
@@ -36,6 +37,7 @@ type ActionModalState =
     }
   | { type: "manual"; barcode: string }
   | { type: "edit"; product: InventoryItem }
+  | { type: "scan_choice"; product: InventoryItem }
   | null;
 
 export default function App() {
@@ -124,14 +126,12 @@ export default function App() {
 
       setLoadingBarcode(barcode);
 
-      // Check if already in local state: open quantity modal immediately
+      // Check if already in local state: open choice modal
       const existingItem = inventory.find((i) => i.barcode === barcode);
       if (existingItem) {
         setActionModal({
-          type: "quantity",
+          type: "scan_choice",
           product: existingItem,
-          existingQty: existingItem.quantity,
-          isNew: false,
         });
         setLoadingBarcode(null);
         return;
@@ -144,10 +144,8 @@ export default function App() {
           : null;
         if (databaseItem) {
           setActionModal({
-            type: "quantity",
+            type: "scan_choice",
             product: databaseItem,
-            existingQty: databaseItem.quantity,
-            isNew: false,
           });
           return;
         }
@@ -709,6 +707,26 @@ export default function App() {
         <ManualProductModal
           barcode={actionModal.barcode}
           onSave={handleManualProductSave}
+          onCancel={() => setActionModal(null)}
+        />
+      )}
+      {actionModal?.type === "scan_choice" && (
+        <ScanChoiceModal
+          product={actionModal.product}
+          onChooseStock={() =>
+            setActionModal({
+              type: "quantity",
+              product: actionModal.product,
+              existingQty: actionModal.product.quantity,
+              isNew: false,
+            })
+          }
+          onChooseEdit={() =>
+            setActionModal({
+              type: "edit",
+              product: actionModal.product,
+            })
+          }
           onCancel={() => setActionModal(null)}
         />
       )}
