@@ -28,9 +28,12 @@ import {
   Package,
   X,
   LogOut,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
+import { triggerHaptic } from "./lib/haptics";
 
 type ActionModalState =
   | {
@@ -69,6 +72,7 @@ export default function App() {
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [isCompactView, setIsCompactView] = useState(false);
 
   // Check session on mount
   useEffect(() => {
@@ -166,6 +170,7 @@ export default function App() {
           };
           try {
             await syncItem(updatedItem);
+            triggerHaptic("success");
             showToast(`+1 ${existingItem.name} (Total : ${updatedItem.quantity})`);
           } catch (error) {
             console.error("Erreur de synchronisation Supabase (Batch Mode):", error);
@@ -187,6 +192,7 @@ export default function App() {
               lastUpdated: Date.now(),
             };
             await syncItem(updatedItem);
+            triggerHaptic("success");
             showToast(`+1 ${databaseItem.name} (Total : ${updatedItem.quantity})`);
             setLoadingBarcode(null);
             return;
@@ -204,9 +210,11 @@ export default function App() {
               lastUpdated: Date.now(),
             };
             await syncItem(item);
+            triggerHaptic("success");
             showToast(`${data.name} ajouté (+1)`);
           } else {
             // Not found, open manual creation modal
+            triggerHaptic("warning");
             setActionModal({
               type: "manual",
               barcode: barcode,
@@ -223,6 +231,7 @@ export default function App() {
 
       const existingItem = inventory.find((i) => i.barcode === barcode);
       if (existingItem) {
+        triggerHaptic("success");
         setActionModal({
           type: "scan_choice",
           product: existingItem,
@@ -237,6 +246,7 @@ export default function App() {
           ? await fetchInventoryItemByBarcode(barcode)
           : null;
         if (databaseItem) {
+          triggerHaptic("success");
           setActionModal({
             type: "scan_choice",
             product: databaseItem,
@@ -246,6 +256,7 @@ export default function App() {
 
         const data = await getProductData(barcode);
         if (data) {
+          triggerHaptic("success");
           setActionModal({
             type: "quantity",
             product: { barcode, ...data },
@@ -254,6 +265,7 @@ export default function App() {
           });
         } else {
           // Not found, open manual creation modal
+          triggerHaptic("warning");
           setActionModal({
             type: "manual",
             barcode: barcode,
@@ -305,6 +317,7 @@ export default function App() {
   });
 
   const handleUpdateQuantity = async (barcode: string, delta: number) => {
+    triggerHaptic("light");
     const existingItem = inventory.find((item) => item.barcode === barcode);
     if (!existingItem) return;
 
@@ -336,6 +349,7 @@ export default function App() {
 
   const handleRemoveItem = async (barcode: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet article ?")) {
+      triggerHaptic("warning");
       const previousInventory = inventory;
       setInventory((prev) => prev.filter((i) => i.barcode !== barcode));
 
@@ -744,6 +758,17 @@ export default function App() {
                     </button>
                   )}
                   <button
+                    onClick={() => setIsCompactView(!isCompactView)}
+                    className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
+                      isCompactView
+                        ? "border-indigo-500 bg-indigo-600 text-white"
+                        : "border-slate-850 bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                    title={isCompactView ? "Affichage détaillé" : "Affichage compact"}
+                  >
+                    {isCompactView ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                  </button>
+                  <button
                     onClick={() => setShowFilters(!showFilters)}
                     className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
                       showFilters 
@@ -860,6 +885,7 @@ export default function App() {
             ) : (
               <InventoryGrid
                 items={filteredInventory}
+                isCompactView={isCompactView}
                 onUpdateQuantity={handleUpdateQuantity}
                 onRemove={handleRemoveItem}
                 onEditQuantity={(item) => setActionModal({

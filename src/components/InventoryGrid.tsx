@@ -1,9 +1,87 @@
-import { useMemo } from "react";
+import React, { useMemo, useState, useRef, TouchEvent } from "react";
 import { InventoryItem } from "../types";
 import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2 } from "lucide-react";
 
+interface SwipeableItemProps {
+  children: React.ReactNode;
+  key?: string;
+  isCompact?: boolean;
+  onSwipeRight: () => void;
+  onSwipeLeft: () => void;
+}
+
+function SwipeableItem({ children, isCompact = false, onSwipeRight, onSwipeLeft }: SwipeableItemProps) {
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = (e: TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isSwiping) return;
+    const diffX = e.touches[0].clientX - startX;
+    const limitedX = Math.max(-120, Math.min(120, diffX));
+    setCurrentX(limitedX);
+  };
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false);
+    if (currentX > 85) {
+      onSwipeRight();
+    } else if (currentX < -85) {
+      onSwipeLeft();
+    }
+    setCurrentX(0);
+  };
+
+  const swipeClass = isSwiping ? "" : "transition-transform duration-200 ease-out";
+  const roundedClass = isCompact ? "rounded-xl" : "rounded-2xl";
+
+  let bgClass = "bg-transparent border-transparent";
+  let iconLeft = false;
+  let iconRight = false;
+  if (currentX > 15) {
+    bgClass = "bg-emerald-600/35 border-emerald-500/20";
+    iconLeft = true;
+  } else if (currentX < -15) {
+    bgClass = "bg-red-600/35 border-red-500/20";
+    iconRight = true;
+  }
+
+  return (
+    <div className={`relative overflow-hidden w-full ${roundedClass}`}>
+      <div className={`absolute inset-0 flex items-center justify-between px-6 transition-colors border ${roundedClass} ${bgClass}`}>
+        <div className={`flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconLeft ? 'opacity-100' : 'opacity-0'}`}>
+          <Plus className="w-4 h-4 animate-pulse" />
+          <span>Ajouter +1</span>
+        </div>
+        <div className={`flex items-center gap-1.5 text-red-400 font-bold text-[10px] uppercase tracking-wider transition-opacity duration-150 ${iconRight ? 'opacity-100' : 'opacity-0'}`}>
+          <span>Supprimer</span>
+          <Trash2 className="w-4 h-4 animate-pulse" />
+        </div>
+      </div>
+
+      <div
+        ref={itemRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ transform: `translateX(${currentX}px)` }}
+        className={`relative z-10 w-full ${swipeClass}`}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 interface InventoryGridProps {
   items: InventoryItem[];
+  isCompactView?: boolean;
   onUpdateQuantity: (barcode: string, delta: number) => void;
   onRemove: (barcode: string) => void;
   onEditQuantity: (item: InventoryItem) => void;
@@ -12,6 +90,7 @@ interface InventoryGridProps {
 
 export function InventoryGrid({
   items,
+  isCompactView = false,
   onUpdateQuantity,
   onRemove,
   onEditQuantity,
@@ -60,120 +139,211 @@ export function InventoryGrid({
           </div>
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 gap-3">
-            {group.items.map((item) => (
-              <article
-                key={item.barcode}
-                className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group"
-                onClick={() => onEditProduct(item)}
-              >
-                <div className="flex gap-4">
-                  {/* Image Container */}
-                  <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl border border-slate-800 bg-slate-950/40 p-1.5">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-full w-full object-contain rounded-lg"
-                      />
-                    ) : (
-                      <Package className="h-6 w-6 text-slate-600" />
-                    )}
-                  </div>
-
-                  {/* Info Column */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-mono text-[9px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                          {item.barcode}
-                          <Edit2 className="w-2.5 h-2.5 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </p>
-                        <h4
-                          className="mt-0.5 line-clamp-1 text-sm font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors"
-                          title={item.name}
-                        >
-                          {item.name}
-                        </h4>
-                      </div>
-                      {item.quantity <= 5 && (
-                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
-                          <AlertTriangle className="h-3 w-3" />
-                          Bas
-                        </span>
-                      )}
-                    </div>
-                    {item.brand && (
-                      <p className="mt-1 truncate text-xs text-slate-400 font-medium">
-                        {item.brand}
-                      </p>
-                    )}
-                    {(item.purchasePrice !== undefined || item.salesPrice !== undefined) && (
-                      <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-medium text-slate-400">
-                        {item.purchasePrice !== undefined && item.purchasePrice !== null && (
-                          <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
-                            Achat: <span className="font-mono font-bold text-slate-300">{item.purchasePrice.toFixed(2)} €</span>
-                          </span>
-                        )}
-                        {item.salesPrice !== undefined && item.salesPrice !== null && (
-                          <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
-                            Vente: <span className="font-mono font-bold text-indigo-300">{item.salesPrice.toFixed(2)} €</span>
-                          </span>
-                        )}
-                        {item.purchasePrice !== undefined && item.salesPrice !== undefined && item.purchasePrice !== null && item.salesPrice !== null && (
-                          <span className="bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 text-emerald-400">
-                            Marge: <span className="font-mono font-bold">{(item.salesPrice - item.purchasePrice).toFixed(2)} €</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Card footer / Actions */}
-                <div 
-                  className="mt-4 flex items-center justify-between border-t border-slate-850 pt-3"
-                  onClick={(e) => e.stopPropagation()} // Prevent modal trigger on button clicks
-                >
-                  <div className="flex items-center rounded-xl bg-slate-950/60 border border-slate-800/85">
-                    <button
-                      onClick={() => onUpdateQuantity(item.barcode, -1)}
-                      className="grid h-10 w-10 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
-                      aria-label="Diminuer la quantité"
-                    >
-                      <Minus className="h-3.5 w-3.5" />
-                    </button>
-                    
-                    {/* Clickable quantity to trigger modal directly */}
-                    <button
-                      onClick={() => onEditQuantity(item)}
-                      className={`px-3 min-w-10 text-center text-xs font-bold font-mono transition active:scale-95 cursor-pointer select-none py-1 hover:text-indigo-400 ${
-                        item.quantity <= 5 ? "text-amber-400" : "text-white"
-                      }`}
-                      title="Modifier directement le stock"
-                    >
-                      {item.quantity}
-                    </button>
-                    
-                    <button
-                      onClick={() => onUpdateQuantity(item.barcode, 1)}
-                      className="grid h-10 w-10 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
-                      aria-label="Augmenter la quantité"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  
-                  <button
-                    onClick={() => onRemove(item.barcode)}
-                    className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 active:scale-90 hover:bg-red-500/10 hover:text-red-400 transition"
-                    title="Supprimer l'article"
+          <div className={isCompactView ? "flex flex-col gap-1.5" : "grid grid-cols-1 gap-3"}>
+            {group.items.map((item) => {
+              if (isCompactView) {
+                return (
+                  <SwipeableItem
+                    key={item.barcode}
+                    isCompact={true}
+                    onSwipeRight={() => onUpdateQuantity(item.barcode, 1)}
+                    onSwipeLeft={() => onRemove(item.barcode)}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <article
+                      className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-2.5 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group flex items-center justify-between gap-3"
+                      onClick={() => onEditProduct(item)}
+                    >
+                      {/* Left Info Column */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4
+                            className="line-clamp-1 text-xs font-bold text-white group-hover:text-indigo-300 transition-colors"
+                            title={item.name}
+                          >
+                            {item.name}
+                          </h4>
+                          {item.brand && (
+                            <span className="text-[10px] text-slate-400 font-medium truncate max-w-[80px]">
+                              • {item.brand}
+                            </span>
+                          )}
+                          {item.quantity <= 5 && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-500 font-medium">
+                          <span className="font-mono">{item.barcode}</span>
+                          {item.salesPrice !== undefined && item.salesPrice !== null && (
+                            <span>• <span className="text-indigo-300 font-semibold">{item.salesPrice.toFixed(2)} €</span></span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right Action Column */}
+                      <div 
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center rounded-lg bg-slate-950/60 border border-slate-800/80">
+                          <button
+                            onClick={() => onUpdateQuantity(item.barcode, -1)}
+                            className="grid h-7 w-7 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                            aria-label="Diminuer la quantité"
+                          >
+                            <Minus className="h-2.5 w-2.5" />
+                          </button>
+                          
+                          <button
+                            onClick={() => onEditQuantity(item)}
+                            className={`px-2 min-w-7 text-center text-[11px] font-bold font-mono transition active:scale-95 cursor-pointer select-none py-0.5 hover:text-indigo-400 ${
+                              item.quantity <= 5 ? "text-amber-400" : "text-white"
+                            }`}
+                          >
+                            {item.quantity}
+                          </button>
+                          
+                          <button
+                            onClick={() => onUpdateQuantity(item.barcode, 1)}
+                            className="grid h-7 w-7 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                            aria-label="Augmenter la quantité"
+                          >
+                            <Plus className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => onRemove(item.barcode)}
+                          className="grid h-7 w-7 place-items-center rounded-lg text-slate-500 active:scale-90 hover:bg-red-500/10 hover:text-red-400 transition"
+                          title="Supprimer l'article"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </article>
+                  </SwipeableItem>
+                );
+              }
+
+              return (
+                <SwipeableItem
+                  key={item.barcode}
+                  isCompact={false}
+                  onSwipeRight={() => onUpdateQuantity(item.barcode, 1)}
+                  onSwipeLeft={() => onRemove(item.barcode)}
+                >
+                  <article
+                    className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 transition-all hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none group"
+                    onClick={() => onEditProduct(item)}
+                  >
+                    <div className="flex gap-4">
+                      {/* Image Container */}
+                      <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl border border-slate-800 bg-slate-950/40 p-1.5">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-contain rounded-lg"
+                          />
+                        ) : (
+                          <Package className="h-6 w-6 text-slate-600" />
+                        )}
+                      </div>
+
+                      {/* Info Column */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-mono text-[9px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                              {item.barcode}
+                              <Edit2 className="w-2.5 h-2.5 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </p>
+                            <h4
+                              className="mt-0.5 line-clamp-1 text-sm font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors"
+                              title={item.name}
+                            >
+                              {item.name}
+                            </h4>
+                          </div>
+                          {item.quantity <= 5 && (
+                            <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
+                              <AlertTriangle className="h-3 w-3" />
+                              Bas
+                            </span>
+                          )}
+                        </div>
+                        {item.brand && (
+                          <p className="mt-1 truncate text-xs text-slate-400 font-medium">
+                            {item.brand}
+                          </p>
+                        )}
+                        {(item.purchasePrice !== undefined || item.salesPrice !== undefined) && (
+                          <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-medium text-slate-400">
+                            {item.purchasePrice !== undefined && item.purchasePrice !== null && (
+                              <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
+                                Achat: <span className="font-mono font-bold text-slate-300">{item.purchasePrice.toFixed(2)} €</span>
+                              </span>
+                            )}
+                            {item.salesPrice !== undefined && item.salesPrice !== null && (
+                              <span className="bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-800/80">
+                                Vente: <span className="font-mono font-bold text-indigo-300">{item.salesPrice.toFixed(2)} €</span>
+                              </span>
+                            )}
+                            {item.purchasePrice !== undefined && item.salesPrice !== undefined && item.purchasePrice !== null && item.salesPrice !== null && (
+                              <span className="bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 text-emerald-400">
+                                Marge: <span className="font-mono font-bold">{(item.salesPrice - item.purchasePrice).toFixed(2)} €</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card footer / Actions */}
+                    <div 
+                      className="mt-4 flex items-center justify-between border-t border-slate-850 pt-3"
+                      onClick={(e) => e.stopPropagation()} // Prevent modal trigger on button clicks
+                    >
+                      <div className="flex items-center rounded-xl bg-slate-950/60 border border-slate-800/85">
+                        <button
+                          onClick={() => onUpdateQuantity(item.barcode, -1)}
+                          className="grid h-10 w-10 place-items-center text-slate-400 active:scale-90 hover:text-white transition"
+                          aria-label="Diminuer la quantité"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        
+                        {/* Clickable quantity to trigger modal directly */}
+                        <button
+                          onClick={() => onEditQuantity(item)}
+                          className={`px-3 min-w-10 text-center text-xs font-bold font-mono transition active:scale-95 cursor-pointer select-none py-1 hover:text-indigo-400 ${
+                            item.quantity <= 5 ? "text-amber-400" : "text-white"
+                          }`}
+                          title="Modifier directement le stock"
+                        >
+                          {item.quantity}
+                        </button>
+                        
+                        <button
+                          onClick={() => onUpdateQuantity(item.barcode, 1)}
+                          className="grid h-10 w-10 place-items-center text-slate-450 active:scale-90 hover:text-white transition"
+                          aria-label="Augmenter la quantité"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => onRemove(item.barcode)}
+                        className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 active:scale-90 hover:bg-red-500/10 hover:text-red-400 transition"
+                        title="Supprimer l'article"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </article>
+                </SwipeableItem>
+              );
+            })}
           </div>
         </div>
       ))}

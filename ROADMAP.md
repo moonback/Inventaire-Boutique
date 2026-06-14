@@ -42,7 +42,7 @@ Cette feuille de route détaille l'état actuel du développement et les prochai
 - [ ] **Thème Sombre / Clair Dynamique** : Transition fluide de thème s'adaptant automatiquement aux préférences système du smartphone.
 - [ ] **Retours Haptiques (Vibrations)** : Micro-vibrations de confirmation tactile lors d'un scan réussi ou de la validation d'une quantité.
 - [ ] **Indicateurs Visuels de Tendance** : Petite flèche d'évolution montrant si le produit a été récemment réapprovisionné ou s'il se vend rapidement.
-- [ ] **Interface Ultra-Compacte Réduite** : Option d'affichage en mode liste simple (sans photo) pour maximiser le nombre d'articles visibles à l'écran.
+- [x] **Interface Ultra-Compacte Réduite** : Option d'affichage en mode liste simple (sans photo) pour maximiser le nombre d'articles visibles à l'écran.
 
 ---
 
