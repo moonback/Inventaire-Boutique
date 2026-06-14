@@ -38,3 +38,24 @@ create policy "Allow public inventory deletes"
 -- ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS sales_price numeric check (sales_price >= 0);
 -- ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS last_movement integer default 0;
 
+
+-- MIGRATION: CRÉATION DU BUCKET DE STOCKAGE POUR LES PHOTOS DE PRODUITS
+-- Exécutez ces lignes dans l'éditeur SQL de Supabase pour configurer le bucket de photos :
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-photos', 'product-photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public Select Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'product-photos');
+
+CREATE POLICY "Public Insert Access" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'product-photos');
+
+CREATE POLICY "Public Update Access" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'product-photos');
+
+CREATE POLICY "Public Delete Access" ON storage.objects
+  FOR DELETE USING (bucket_id = 'product-photos');
+
+

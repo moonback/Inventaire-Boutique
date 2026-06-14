@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Check, X, Minus, Plus, Edit2 } from 'lucide-react';
+import { useState, useRef, useEffect, ChangeEvent } from 'react';
+import { Sparkles, Check, X, Minus, Plus, Edit2, Camera, Trash2, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { uploadProductImage } from '../lib/supabaseInventory';
 
 interface ManualProductModalProps {
   barcode: string;
@@ -35,7 +36,12 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
   const [imageUrl, setImageUrl] = useState(initialValues?.imageUrl ?? '');
   const [purchasePrice, setPurchasePrice] = useState(initialValues?.purchasePrice !== undefined ? String(initialValues.purchasePrice) : '');
   const [salesPrice, setSalesPrice] = useState(initialValues?.salesPrice !== undefined ? String(initialValues.salesPrice) : '');
+  
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!initialValues;
 
@@ -44,6 +50,27 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
       inputRef.current.focus();
     }
   }, []);
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const publicUrl = await uploadProductImage(barcode, file);
+      setImageUrl(publicUrl);
+    } catch (err) {
+      console.error("Erreur de téléchargement d'image:", err);
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'uploader la photo."
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = () => {
     const num = parseInt(qty, 10);
@@ -74,7 +101,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-        className="w-full sm:max-w-md bg-[#111827] border-t sm:border border-slate-800 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden pb-safe"
+        className="w-full sm:max-w-md glass-panel border-t sm:border border-slate-800 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden pb-safe"
       >
         {/* Header Drag Indicator for mobile */}
         <div className="flex justify-center py-3 sm:hidden">
@@ -110,6 +137,70 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
           </p>
           
           <div className="space-y-4 mb-6">
+            {/* Photo Upload / Capture Section */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Photo du produit</label>
+              
+              <div className="relative group">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                  id="product-photo-upload"
+                />
+                
+                {imageUrl ? (
+                  <div className="relative h-28 w-full rounded-2xl border border-slate-800/80 overflow-hidden bg-slate-950/40 flex items-center justify-center">
+                    <img
+                      src={imageUrl}
+                      alt="Aperçu du produit"
+                      className="h-full object-contain"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 bg-slate-900/90 rounded-xl border border-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Changer</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="p-2 bg-red-950/90 rounded-xl border border-red-500/20 text-red-400 hover:text-red-350 transition active:scale-95 text-[10px] font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Supprimer</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full h-28 rounded-2xl border border-dashed border-slate-800 hover:border-indigo-500/60 bg-slate-900/20 hover:bg-indigo-500/5 transition flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-slate-200 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                      {isUploading ? "Téléchargement..." : "Prendre / Choisir une photo"}
+                    </span>
+                  </button>
+                )}
+              </div>
+              
+              {uploadError && (
+                <p className="text-[10px] font-semibold text-red-400">{uploadError}</p>
+              )}
+            </div>
+
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nom du produit *</label>
               <input
@@ -118,7 +209,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                 value={name}
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && document.getElementById('brand-input')?.focus()}
-                className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                 placeholder="Ex: Coca-Cola 33cl"
               />
             </div>
@@ -132,7 +223,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                   value={brand}
                   onChange={e => setBrand(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && document.getElementById('category-input')?.focus()}
-                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                   placeholder="Ex: Coca-Cola"
                 />
               </div>
@@ -144,7 +235,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                   type="text"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                   placeholder="Ex: Boissons"
                 />
               </div>
@@ -156,7 +247,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                 type="text"
                 value={imageUrl}
                 onChange={e => setImageUrl(e.target.value)}
-                className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                 placeholder="Ex: https://..."
               />
             </div>
@@ -170,7 +261,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                   min="0"
                   value={purchasePrice}
                   onChange={e => setPurchasePrice(e.target.value)}
-                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                   placeholder="Ex: 10.50"
                 />
               </div>
@@ -183,7 +274,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                   min="0"
                   value={salesPrice}
                   onChange={e => setSalesPrice(e.target.value)}
-                  className="w-full h-11 px-4 bg-slate-900 border border-slate-800 rounded-xl focus:border-indigo-500 text-sm font-semibold text-white outline-none transition"
+                  className="w-full h-11 px-4 glass-input rounded-xl text-sm font-semibold text-white outline-none transition"
                   placeholder="Ex: 15.00"
                 />
               </div>
@@ -191,11 +282,11 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
 
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Stock en rayon</label>
-              <div className="relative flex items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-3">
+              <div className="relative flex items-center justify-between gap-4 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-3">
                 <button
                   type="button"
                   onClick={() => adjustQty(-1)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-lg transition"
+                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 active:scale-95 border border-slate-700/80 rounded-lg transition"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -220,7 +311,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
                 <button
                   type="button"
                   onClick={() => adjustQty(1)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-lg transition"
+                  className="w-10 h-10 flex items-center justify-center text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 active:scale-95 border border-slate-700/80 rounded-lg transition"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -238,7 +329,7 @@ export function ManualProductModal({ barcode, initialValues, onSave, onCancel }:
             </button>
             <button
               onClick={handleSave}
-              disabled={!name.trim() || qty.trim() === '' || isNaN(parseInt(qty, 10)) || parseInt(qty, 10) < 0}
+              disabled={!name.trim() || qty.trim() === '' || isNaN(parseInt(qty, 10)) || parseInt(qty, 10) < 0 || isUploading}
               className="flex-1 py-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 disabled:opacity-40 disabled:pointer-events-none rounded-2xl shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition"
             >
               <Check className="w-4 h-4" />

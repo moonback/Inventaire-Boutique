@@ -133,3 +133,31 @@ export async function deleteInventoryItem(barcode: string): Promise<void> {
     headers: getHeaders(),
   });
 }
+
+export async function uploadProductImage(barcode: string, file: File): Promise<string> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase n'est pas configuré.");
+  }
+
+  const extension = file.name.split('.').pop() || 'jpg';
+  const fileName = `${barcode}_${Date.now()}.${extension}`;
+  const uploadUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/product-photos/${fileName}`;
+
+  const headers = {
+    ...getHeaders(),
+  } as any;
+  headers['Content-Type'] = file.type;
+  headers['x-upsert'] = 'true';
+
+  const response = await fetch(uploadUrl, {
+    method: 'POST',
+    headers,
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseSupabaseError(response));
+  }
+
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/product-photos/${fileName}`;
+}
