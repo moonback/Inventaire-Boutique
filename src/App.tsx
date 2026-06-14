@@ -28,6 +28,8 @@ import {
   X,
   List,
   LayoutGrid,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
@@ -515,6 +517,10 @@ export default function App() {
   const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
   const lowStockCount = inventory.filter((item) => item.quantity <= 5).length;
 
+  const recentlyScanned = useMemo(() => {
+    return [...inventory].sort((a, b) => b.lastUpdated - a.lastUpdated).slice(0, 3);
+  }, [inventory]);
+
   const financialStats = useMemo(() => {
     let totalPurchaseVal = 0;
     let totalSalesVal = 0;
@@ -695,6 +701,90 @@ export default function App() {
                 isActive={!loadingBarcode && !actionModal}
               />
             </div>
+
+            {/* Recently Scanned Items List */}
+            {recentlyScanned.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Derniers articles scannés
+                  </h3>
+                  <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                    Historique rapide
+                  </span>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  {recentlyScanned.map((item) => (
+                    <div
+                      key={item.barcode}
+                      onClick={() => setActionModal({ type: 'edit', product: item })}
+                      className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 px-3 py-2 flex items-center justify-between gap-3 hover:bg-slate-900/60 hover:border-slate-700/80 cursor-pointer select-none transition group"
+                    >
+                      <div className="min-w-0 flex-1 flex items-center gap-3">
+                        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-slate-800 bg-slate-950/40 p-1">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="h-full w-full object-contain rounded"
+                            />
+                          ) : (
+                            <Package className="h-4.5 w-4.5 text-slate-600" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="line-clamp-1 text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">
+                            {item.name}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-slate-500 font-medium">
+                            <span className="font-mono">{item.barcode}</span>
+                            {item.brand && <span>• {item.brand}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div 
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center rounded-lg bg-slate-950/60 border border-slate-800/80">
+                          <button
+                            onClick={() => handleUpdateQuantity(item.barcode, -1)}
+                            className="grid h-6 w-6 place-items-center text-slate-400 active:scale-90 hover:text-white transition cursor-pointer"
+                            aria-label="Diminuer la quantité"
+                          >
+                            <Minus className="h-2 w-2" />
+                          </button>
+                          
+                          <button
+                            onClick={() => setActionModal({
+                              type: "quantity",
+                              product: item,
+                              existingQty: item.quantity,
+                              isNew: false,
+                            })}
+                            className={`px-1.5 min-w-6 text-center text-[10px] font-bold font-mono py-0.5 hover:text-indigo-400 cursor-pointer ${
+                              item.quantity <= 5 ? "text-amber-400" : "text-white"
+                            }`}
+                          >
+                            {item.quantity}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleUpdateQuantity(item.barcode, 1)}
+                            className="grid h-6 w-6 place-items-center text-slate-400 active:scale-90 hover:text-white transition cursor-pointer"
+                            aria-label="Augmenter la quantité"
+                          >
+                            <Plus className="h-2 w-2" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         ) : (
           /* STOCK VIEW TAB */
