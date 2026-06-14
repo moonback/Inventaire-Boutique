@@ -1,4 +1,5 @@
 import { InventoryItem } from '../types';
+import { getSession } from './supabaseAuth';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -29,9 +30,14 @@ function getHeaders(extraHeaders?: HeadersInit): HeadersInit {
     throw new Error('VITE_SUPABASE_ANON_KEY est manquant.');
   }
 
+  const session = getSession();
+  const authHeader = session?.accessToken
+    ? `Bearer ${session.accessToken}`
+    : `Bearer ${supabaseAnonKey}`;
+
   return {
     apikey: supabaseAnonKey,
-    Authorization: `Bearer ${supabaseAnonKey}`,
+    Authorization: authHeader,
     'Content-Type': 'application/json',
     ...extraHeaders,
   };

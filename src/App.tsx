@@ -4,6 +4,7 @@ import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
+import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData } from "./types";
 import {
@@ -13,6 +14,7 @@ import {
   isSupabaseConfigured,
   upsertInventoryItem,
 } from "./lib/supabaseInventory";
+import { getSession, signOut, UserSession } from "./lib/supabaseAuth";
 import { getProductData } from "./api";
 import {
   Store,
@@ -25,6 +27,7 @@ import {
   Scan,
   Package,
   X,
+  LogOut,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 
@@ -41,6 +44,9 @@ type ActionModalState =
   | null;
 
 export default function App() {
+  const [session, setSession] = useState<UserSession | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -62,8 +68,19 @@ export default function App() {
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Check session on mount
   useEffect(() => {
+    const activeSession = getSession();
+    setSession(activeSession);
+    setIsSessionLoading(false);
+  }, []);
+
+  // Fetch inventory once authenticated
+  useEffect(() => {
+    if (!session) return;
+
     let isMounted = true;
+    setIsInventoryLoading(true);
 
     async function loadInventory() {
       if (!isSupabaseConfigured) {
@@ -101,7 +118,17 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [session]);
+
+  const handleLogout = async () => {
+    if (session) {
+      setIsInventoryLoading(true);
+      await signOut(session.accessToken);
+      setSession(null);
+      setInventory([]);
+      showToast("Déconnecté avec succès");
+    }
+  };
 
   const syncItem = async (item: InventoryItem) => {
     const savedItem = await upsertInventoryItem(item);
@@ -122,7 +149,7 @@ export default function App() {
 
   const handleScan = useCallback(
     async (barcode: string) => {
-      if (!barcode || loadingBarcode || actionModal) return;
+      if (!barcode || loadingBarcode || actionModal || !session) return;
 
       setLoadingBarcode(barcode);
 
@@ -177,7 +204,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal],
+    [inventory, loadingBarcode, actionModal, session],
   );
 
   // Hook for physical hardware scanners globally
@@ -426,6 +453,21 @@ export default function App() {
     setSortBy("recent");
   };
 
+  if (isSessionLoading) {
+    return (
+      <div className="min-h-screen bg-[#070b13] flex flex-col items-center justify-center gap-3 text-slate-400">
+        <Loader2 className="h-7 w-7 animate-spin text-indigo-400" />
+        <span className="text-xs font-semibold tracking-wider font-mono">
+          Vérification de la session...
+        </span>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthScreen onAuthSuccess={(activeSession) => setSession(activeSession)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#070b13] text-slate-100 font-sans pb-32">
       {/* Header Panel */}
@@ -435,13 +477,13 @@ export default function App() {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <Store className="h-5 w-5" />
             </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5 truncate">
                 Boutique
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </h1>
-              <p className="text-[10px] text-slate-400 font-medium">
-                Gestionnaire d'inventaire
+              <p className="text-[10px] text-slate-450 font-semibold truncate max-w-[140px] sm:max-w-none">
+                {session.email}
               </p>
             </div>
           </div>
@@ -455,6 +497,13 @@ export default function App() {
                 <Download className="h-4 w-4" />
               </button>
             )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 tap-active transition"
+              title="Se déconnecter"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>

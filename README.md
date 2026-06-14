@@ -1,42 +1,61 @@
-# Inventaire Boutique
+# 📦 Boutique · Inventaire PWA
 
-Une application web moderne et réactive de gestion d'inventaire pour boutique, conçue pour un scan ultrarapide et une collecte de données de produits automatisée.
+Une application Progressive Web App (PWA) de gestion d'inventaire mobile-first, conçue pour un scan rapide, une synchronisation Cloud en temps réel et un confort d'utilisation optimal en boutique.
 
-## 🚀 Fonctionnalités Principales
+---
 
-- **Scan de Code-barres EAN-13** : 
-  - Prise en charge transparente des scanners matériels (douchettes USB/Bluetooth) sans avoir besoin de cliquer dans un champ spécifique.
-  - Scanner intégré via la caméra (smartphone/ordinateur) pour numériser en direct.
-- **Intégration OpenFoodFacts** : Récupération automatique et instantanée du nom du produit, de sa marque, de sa catégorie et de sa photo via l'API publique OpenFoodFacts.
-- **Flux de Quantité Rapide** : À chaque scan, une popup s'affiche automatiquement en plaçant le curseur sur le champ quantité pour une saisie ultra-fluide.
-- **Mode Saisie Manuelle** : Permet la création d'articles à la volée lorsqu'un code-barres n'est pas reconnu par les bases de données publiques.
-- **Synchronisation Supabase** : L'inventaire est enregistré dans une base de données Supabase afin de retrouver les données depuis un autre navigateur ou appareil.
-- **Export CSV** : Un simple bouton permet d'extraire tout le stock actuel sous forme de tableau exploitable sur Excel.
+## ✨ Fonctionnalités Principales
+
+### 📱 Interface Mobile-First & Minimaliste
+- **Design Premium Sombre :** Palette de couleurs foncées soignée (ardoise profonde et indigo vibrant), coins arrondis amples, effets de verre dépoli (glassmorphism) et transitions fluides.
+- **Navigation Tactile Ergonomique :** Barre de navigation fixée au bas de l'écran pour un usage facile à une main, avec des zones cibles tactiles de taille optimale (min. 44px).
+- **Statistiques Compactes :** Affichage d'une ligne de micro-badges sous l'en-tête résumant l'inventaire en un coup d'œil (références, quantité totale, alertes de stock).
+
+### 🔍 Gestion des Scans & Routage Intelligent
+- **Prise en charge des Scanners Physiques :** Lecture transparente via douchettes matérielles (USB/Bluetooth), avec écoute globale intelligente pour numériser sans focus manuel obligatoire.
+- **Routage de Scan Interactif :** Lors du scan d'un produit existant, l'utilisateur est guidé par un choix clair :
+  - **Ajuster le stock** : Accès à l'éditeur rapide de quantité.
+  - **Modifier la fiche produit** : Accès au formulaire de métadonnées pour renommer, réaffecter une marque ou catégorie.
+- **Saisie Manuelle & Mode Création :** Formulaires épurés avec contrôles de quantité +/- tactiles pour ajouter des produits non référencés.
+
+### 🎯 Système de Filtres Dynamiques
+- **Pills de Catégories Défilables :** Extraction automatique et dynamique des catégories en stock, affichées sous forme de badges cliquables défilables horizontalement.
+- **Tiroir de Filtres Avancés :** 
+  - Tri (alphabétique, date d'ajout, quantité croissante/décroissante).
+  - État de stock (Tous, En stock, Stock faible ≤ 5, Rupture de stock).
+  - Indicateur de filtres actifs et bouton de réinitialisation rapide.
+
+### 🌐 Mode PWA Complet (Installable & Hors-ligne)
+- **Installable sur Mobile & PC :** Intègre un fichier `manifest.json` et un logo vectoriel haute fidélité (`icon.svg`), permettant l'installation de l'application sur l'écran d'accueil comme une application native.
+- **Service Worker Intelligent :** Caching en arrière-plan via une stratégie *Network-First* qui garantit un fonctionnement robuste en cas de coupure de réseau.
+
+---
 
 ## 🛠️ Stack Technique
 
-- **Frontend** : React 19, TypeScript
-- **Style** : Tailwind CSS v4, Lucide React (icônes)
-- **Scanner Caméra** : html5-qrcode
-- **Backend** : Supabase (API REST PostgREST)
-- **Outil de Build** : Vite
+- **Framework :** React 19 (StrictMode), TypeScript
+- **Styles :** Tailwind CSS v4, Lucide React (icônes)
+- **Animations :** Motion (Framer Motion)
+- **Synchronisation Cloud :** Supabase (REST API & resolution rules)
+- **Build & Dev Server :** Vite
 
-
+---
 
 ## ☁️ Configuration Supabase
 
-1. Créez un projet Supabase.
-2. Exécutez le contenu de `supabase-schema.sql` dans l'éditeur SQL Supabase pour créer la table `inventory_items` et ses règles RLS.
-3. Copiez `.env.example` vers `.env.local` puis renseignez :
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_SUPABASE_INVENTORY_TABLE` si vous souhaitez utiliser un autre nom de table.
-4. Redémarrez le serveur Vite après modification des variables d'environnement.
+1. Créez un projet sur [Supabase](https://supabase.com/).
+2. Exécutez le fichier [supabase-schema.sql](file:///c:/Users/Mayss/Documents/GitHub/Inventaire-Boutique/supabase-schema.sql) dans l'éditeur SQL de votre console pour créer la table `inventory_items` et activer les règles de sécurité Row Level Security (RLS).
+3. Copiez le fichier `.env.example` en un nouveau fichier `.env` à la racine et renseignez :
+   ```env
+   VITE_SUPABASE_URL=https://votre-projet.supabase.co
+   VITE_SUPABASE_ANON_KEY=votre-cle-api-anonyme
+   ```
+4. Lancez le serveur de développement.
 
-## 📦 Utilisation
+---
 
-1. **Scanner** : Flashez simplement un article avec votre douchette, ou utilisez le mode "Caméra" si vous êtes sur mobile.
-2. **Quantité** : Tapez le nombre d'articles ajoutés (le curseur y est déjà focus) et pressez `Entrée`.
-3. **Produit Inconnu ?** : Si le produit est introuvable sur OpenFoodFacts, l'application vous demandera de lui attribuer un nom la première fois.
-4. **Ajustements** : Dans la grille des produits, vous pouvez ajuster manuellement (`+` / `-`) ou supprimer complètement l'article.
-5. **Sauvegarde** : Exportez le fichier `.csv` en fin de session pour transmettre le bilan à votre comptabilité.
+## 📦 Commandes Utiles
+
+- **Développement :** `npm run dev` (Démarre le serveur local sur le port 3000)
+- **Compilation Production :** `npm run build` (Génère le dossier statique optimisé `dist`)
+- **Linter TypeScript :** `npm run lint` (Vérification statique des types)
