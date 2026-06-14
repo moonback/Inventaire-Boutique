@@ -1,27 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Scanner } from './components/Scanner';
 import { ManualInput } from './components/ManualInput';
 import { InventoryGrid } from './components/InventoryGrid';
 import { ManualProductModal } from './components/ManualProductModal';
-import { QuantityModal } from './components/QuantityModal';
 import { Toast } from './components/Toast';
 import { InventoryItem, ProductLookupData } from './types';
 import { deleteInventoryItem, fetchInventoryItemByBarcode, fetchInventoryItems, isSupabaseConfigured, upsertInventoryItem } from './lib/supabaseInventory';
 import { getProductData } from './api';
-import { ScanLine, Keyboard, Store, Download, RefreshCw, Loader2, Search, Filter } from 'lucide-react';
+import { Store, Download, Loader2, Search, Filter, ScanBarcode, Zap } from 'lucide-react';
 import { useHardwareScanner } from './hooks/useHardwareScanner';
 
-type ActionModalState = 
-  | { type: 'quantity'; product: InventoryItem | ({ barcode: string } & ProductLookupData); existingQty: number; isNew: boolean }
-  | { type: 'manual'; barcode: string }
-  | null;
+type ActionModalState = { type: 'manual'; barcode: string } | null;
 
 export default function App() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  const [scanningMode, setScanningMode] = useState<'manual' | 'camera'>('manual');
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string, id: number } | null>(null);
@@ -212,38 +206,6 @@ export default function App() {
     }
   };
 
-  const handleQuantitySave = async (quantityToAdd: number) => {
-    if (actionModal?.type === 'quantity') {
-      const { product, isNew } = actionModal;
-      const existingItem = inventory.find(item => item.barcode === product.barcode);
-      const item: InventoryItem = isNew || !existingItem
-        ? {
-            barcode: product.barcode,
-            name: product.name,
-            imageUrl: product.imageUrl,
-            brand: product.brand,
-            category: product.category,
-            quantity: quantityToAdd,
-            lastUpdated: Date.now()
-          }
-        : {
-            ...existingItem,
-            quantity: existingItem.quantity + quantityToAdd,
-            lastUpdated: Date.now()
-          };
-
-      try {
-        await syncItem(item);
-        showToast(`+${quantityToAdd} ${product.name}`);
-        setActionModal(null);
-      } catch (error) {
-        console.error('Erreur de synchronisation Supabase:', error);
-        setSyncError(error instanceof Error ? error.message : 'Impossible de synchroniser cet article.');
-        showToast('Erreur de synchronisation Supabase');
-      }
-    }
-  };
-
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Code-barres,Nom,Marque,Quantité\n"
@@ -319,45 +281,37 @@ export default function App() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         
         {/* Scanner Section */}
-        <section className="mb-12">
-          <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mb-6 flex max-w-sm mx-auto">
-            <button
-              onClick={() => setScanningMode('manual')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${
-                scanningMode === 'manual' 
-                ? 'bg-blue-50 text-blue-700 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Keyboard className="w-4 h-4" />
-              Saisie Manuelle
-            </button>
-            <button
-              onClick={() => setScanningMode('camera')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium text-sm transition-all ${
-                scanningMode === 'camera' 
-                ? 'bg-blue-50 text-blue-700 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <ScanLine className="w-4 h-4" />
-              Caméra
-            </button>
-          </div>
+        <section className="mb-10">
+          <div className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-5 shadow-2xl shadow-slate-200 sm:p-8">
+            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/30 blur-3xl" />
+            <div className="absolute -bottom-20 left-8 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
 
-          <div className="relative">
-             {loadingBarcode && (
-               <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-blue-600">
-                  <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                  <span className="font-medium text-sm">Recherche {loadingBarcode}...</span>
-               </div>
-             )}
-            
-            {scanningMode === 'manual' ? (
+            <div className="relative z-10 mb-6 flex items-start justify-between gap-4">
+              <div>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-100">
+                  <Zap className="h-3.5 w-3.5" />
+                  Scan mobile rapide
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Scanner prêt</h2>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
+                  Utilisez votre Zebra TC22 ou saisissez un EAN. Les produits connus sont ajoutés automatiquement, les inconnus restent saisissables manuellement.
+                </p>
+              </div>
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
+                <ScanBarcode className="h-7 w-7" />
+              </div>
+            </div>
+
+            <div className="relative z-10">
+              {loadingBarcode && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-slate-950/70 text-white backdrop-blur-md">
+                  <Loader2 className="mb-2 h-8 w-8 animate-spin" />
+                  <span className="text-sm font-semibold">Recherche {loadingBarcode}...</span>
+                </div>
+              )}
+
               <ManualInput onScan={handleScan} isActive={!loadingBarcode && !actionModal} />
-            ) : (
-              <Scanner onScan={handleScan} isActive={!loadingBarcode && !actionModal} />
-            )}
+            </div>
           </div>
         </section>
 
@@ -455,16 +409,6 @@ export default function App() {
         />
       )}
       
-      {actionModal?.type === 'quantity' && (
-        <QuantityModal
-          product={actionModal.product}
-          existingQty={actionModal.existingQty}
-          isNew={actionModal.isNew}
-          onSave={handleQuantitySave}
-          onCancel={() => setActionModal(null)}
-        />
-      )}
-
       <Toast message={toastMessage?.text || null} visible={!!toastMessage} />
     </div>
   );

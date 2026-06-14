@@ -1,5 +1,5 @@
 import { useState, KeyboardEvent, useEffect, useRef, useCallback, ClipboardEvent } from 'react';
-import { Scan } from 'lucide-react';
+import { ScanLine } from 'lucide-react';
 
 const SCANNER_AUTO_SUBMIT_DELAY_MS = 120;
 const SCANNER_MAX_KEY_INTERVAL_MS = 80;
@@ -85,21 +85,27 @@ export function ManualInput({ onScan, isActive }: { onScan: (code: string) => vo
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Scan className="h-5 w-5 text-gray-400" />
-      </div>
+    <div className="rounded-3xl border border-white/10 bg-white p-2 shadow-xl shadow-black/10">
+      <label className="mb-2 flex items-center gap-2 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <ScanLine className="h-4 w-4 text-blue-600" />
+        Code-barres EAN
+      </label>
       <input
         ref={inputRef}
         type="text"
+        inputMode="numeric"
+        autoComplete="off"
         autoFocus
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        className="block w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-lg shadow-sm"
-        placeholder="Saisissez ou scannez un code-barres..."
+        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center font-mono text-xl font-semibold tracking-widest text-slate-900 outline-none transition-all placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15"
+        placeholder="Scannez ou saisissez le code"
       />
+      <p className="px-3 pb-2 pt-2 text-center text-xs text-slate-500">
+        Validation automatique avec scanner, Entrée ou Tab.
+      </p>
     </div>
   )
 }
