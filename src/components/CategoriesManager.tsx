@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useMemo, FormEvent } from 'react';
 import { Plus, Edit2, Trash2, HelpCircle, RefreshCw, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem, InventoryItem } from '../types';
@@ -142,8 +142,20 @@ export function CategoriesManager({
     }
   };
 
+  const categoryCountsByLower = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of inventory) {
+      const cat = item.category?.trim();
+      if (!cat) continue;
+      const key = cat.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [inventory]);
+
   return (
     <section className="glass-card rounded-[2rem] p-5 space-y-5">
+
       <div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
           Organisation
@@ -286,12 +298,11 @@ export function CategoriesManager({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {categories.map((category) => {
-            const count = inventory.filter(
-              (item) => item.category?.trim().toLowerCase() === category.name.trim().toLowerCase()
-            ).length;
+                  {categories.map((category) => {
+            const count = categoryCountsByLower.get(category.name.trim().toLowerCase()) ?? 0;
 
             return (
+
               <div
                 key={category.id || category.name}
                 className="flex items-center justify-between p-3 rounded-xl border border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm transition group"

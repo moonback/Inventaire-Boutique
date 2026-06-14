@@ -636,16 +636,26 @@ export default function App() {
     };
   }, [inventory]);
 
-  // Extract list of unique categories dynamically
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    inventory.forEach((item) => {
-      if (item.category && item.category.trim()) {
-        cats.add(item.category.trim());
-      }
-    });
-    return Array.from(cats).sort();
+  // Extract list of unique categories dynamically + counts per category (performance)
+  const { categories, categoryCountsByLower } = useMemo(() => {
+    const catsSet = new Set<string>();
+    const counts = new Map<string, number>();
+
+    for (const item of inventory) {
+      const cat = item.category?.trim();
+      if (!cat) continue;
+
+      catsSet.add(cat);
+      const key = cat.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    return {
+      categories: Array.from(catsSet).sort(),
+      categoryCountsByLower: counts,
+    };
   }, [inventory]);
+
 
   const filteredInventory = useMemo(() => {
     let result = [...inventory];
@@ -1007,8 +1017,8 @@ export default function App() {
                     Tout ({inventory.length})
                   </button>
                   {categories.map((cat) => {
-                    const count = inventory.filter((i) => i.category?.trim() === cat).length;
-                    const catObj = dbCategories.find(c => c.name.toLowerCase() === cat.toLowerCase());
+                    const count = categoryCountsByLower.get(cat.toLowerCase()) ?? 0;
+                    const catObj = dbCategories.find((c) => c.name.toLowerCase() === cat.toLowerCase());
                     const displayLabel = catObj?.icon ? `${catObj.icon} ${cat}` : cat;
                     return (
                       <button
@@ -1024,6 +1034,7 @@ export default function App() {
                       </button>
                     );
                   })}
+
                 </div>
               )}
             </div>

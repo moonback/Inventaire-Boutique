@@ -123,11 +123,12 @@ export function InventoryGrid({
 
   const groupedItems = useMemo(() => {
     const groups: Record<string, InventoryItem[]> = {};
-    items.forEach((item) => {
+    for (const item of items) {
       const cat = item.category ? item.category.trim() : "Non classé";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
-    });
+    }
+
     return Object.keys(groups)
       .sort((a, b) => {
         if (a === "Non classé") return 1;
@@ -136,6 +137,17 @@ export function InventoryGrid({
       })
       .map((category) => ({ category, items: groups[category] }));
   }, [items]);
+
+  const categoryIconByLower = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of categories) {
+      if (!c?.name) continue;
+      const key = c.name.toLowerCase();
+      if (c.icon) m.set(key, c.icon);
+    }
+    return m;
+  }, [categories]);
+
 
   if (items.length === 0) {
     return (
@@ -157,10 +169,11 @@ export function InventoryGrid({
           <div className="flex items-center justify-between border-b border-stone-200 pb-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">
               {(() => {
-                const catObj = categories.find(c => c.name.toLowerCase() === group.category.toLowerCase());
-                return catObj?.icon ? `${catObj.icon} ${group.category}` : group.category;
+                const icon = categoryIconByLower.get(group.category.toLowerCase());
+                return icon ? `${icon} ${group.category}` : group.category;
               })()}
             </h3>
+
             <span className="text-[10px] font-bold font-mono tabular px-2 py-0.5 bg-stone-100 border border-stone-200 text-stone-500 rounded-full">
               {group.items.length}
             </span>
