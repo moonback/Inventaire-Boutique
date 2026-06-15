@@ -762,7 +762,7 @@ export default function App() {
                   Scanner
                 </span>
                 <h2 className="mt-2 text-base font-bold tracking-tight text-stone-900">
-                  Ajouter via Code-barres
+                  Ajouter un article
                 </h2>
               </div>
               <div
@@ -796,7 +796,7 @@ export default function App() {
             </div>
 
             {/* Mode Scan en Lot (Batch Mode) */}
-            <div className="mb-5 flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
+            {/* <div className="mb-5 flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
               <div>
                 <h3 className="text-xs font-bold text-stone-900">Mode Scan en Lot</h3>
                 <p className="text-[10px] text-stone-500 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
@@ -816,7 +816,7 @@ export default function App() {
                   }`}
                 />
               </button>
-            </div>
+            </div> */}
 
             <div className="relative">
               {loadingBarcode && (
