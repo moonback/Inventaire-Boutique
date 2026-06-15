@@ -20,11 +20,49 @@ function getRestHeaders(extraHeaders?: HeadersInit): HeadersInit {
   };
 }
 
+function decodeJwtExp(token: string): number | null {
+  // JWT = header.payload.signature
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+
+  try {
+    const payloadB64Url = parts[1];
+    const payloadB64 = payloadB64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(payloadB64);
+    const payload = JSON.parse(json);
+
+    const exp = payload?.exp;
+    return typeof exp === 'number' ? exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function isAccessTokenExpired(token: string): boolean {
+  const exp = decodeJwtExp(token);
+  if (!exp) return false; // Si exp introuvable, on évite de casser des sessions existantes.
+
+  // exp est en secondes depuis epoch
+  const nowSeconds = Date.now() / 1000;
+
+  // marge : 30s pour éviter les races au moment de l’expiration
+  return nowSeconds >= exp - 30;
+}
+
 export function getSession(): UserSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+
+    const parsed = JSON.parse(raw) as UserSession;
+    if (!parsed?.accessToken) return null;
+
+    if (isAccessTokenExpired(parsed.accessToken)) {
+      clearSession();
+      return null;
+    }
+
+    return parsed;
   } catch (error) {
     console.error("Erreur de lecture de session:", error);
     return null;

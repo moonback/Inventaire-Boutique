@@ -1,5 +1,5 @@
 import { InventoryItem } from '../types';
-import { getSession } from './supabaseAuth';
+import { clearSession, getSession } from './supabaseAuth';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -89,9 +89,19 @@ async function parseSupabaseError(response: Response) {
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);
 
+  if (response.status === 401) {
+    // Token JWT expiré ou invalide : forcer re-login.
+    try {
+      clearSession();
+    } catch {
+      // ignore
+    }
+  }
+
   if (!response.ok) {
     throw new Error(await parseSupabaseError(response));
   }
+
 
   if (response.status === 204) {
     return undefined as T;
