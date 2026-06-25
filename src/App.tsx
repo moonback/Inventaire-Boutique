@@ -5,6 +5,8 @@ import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
+import { StockScanMode } from "./components/StockScanModeToggle";
+import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
@@ -36,6 +38,7 @@ import {
   Minus,
   Plus,
   Tags,
+  Zap,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
@@ -64,7 +67,7 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [inventorySource, setInventorySource] = useState<"remote" | "cache">("remote");
 
-  const [activeTab, setActiveTab] = useState<"scan" | "stock" | "categories">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "autoScan" | "stock" | "categories">("scan");
   const [dbCategories, setDbCategories] = useState<CategoryItem[]>([]);
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
@@ -82,7 +85,8 @@ export default function App() {
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
-  const [isCompactView, setIsCompactView] = useState(false);
+  const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
+  const [isCompactView, setIsCompactView] = useState(true);
 
   const showToast = useCallback((text: string) => {
     const id = Date.now();
@@ -254,22 +258,34 @@ export default function App() {
 
       setLoadingBarcode(barcode);
 
-      // Check if already in local state: open choice modal (or increment immediately if in batch mode)
-      if (isBatchMode) {
+      // Mode automatique : chaque scan ajoute ou retire 1 unité sans ouvrir de fenêtre.
+      if (activeTab === "autoScan" && isBatchMode) {
+        const movement = stockScanMode === "add" ? 1 : -1;
         const existingItem = inventory.find((i) => i.barcode === barcode);
         if (existingItem) {
+          const nextQuantity = Math.max(0, existingItem.quantity + movement);
+          const appliedMovement = nextQuantity - existingItem.quantity;
+          if (stockScanMode === "remove" && appliedMovement === 0) {
+            triggerHaptic("warning");
+            showToast(`${existingItem.name} est déjà à 0`);
+            setLoadingBarcode(null);
+            return;
+          }
+
           const updatedItem = {
             ...existingItem,
-            quantity: existingItem.quantity + 1,
+            quantity: nextQuantity,
             lastUpdated: Date.now(),
-            lastMovement: 1,
+            lastMovement: appliedMovement,
           };
           try {
             await syncItem(updatedItem);
             triggerHaptic("success");
-            showToast(`+1 ${existingItem.name} (Total : ${updatedItem.quantity})`);
+            showToast(
+              `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${existingItem.name} (Total : ${updatedItem.quantity})`,
+            );
           } catch (error) {
-            console.error("Erreur de synchronisation Supabase (Batch Mode):", error);
+            console.error("Erreur de synchronisation Supabase (scan automatique):", error);
             showToast("Erreur de synchronisation");
           } finally {
             setLoadingBarcode(null);
@@ -282,15 +298,33 @@ export default function App() {
             ? await fetchInventoryItemWithFallback(barcode)
             : null;
           if (databaseItem) {
+            const nextQuantity = Math.max(0, databaseItem.quantity + movement);
+            const appliedMovement = nextQuantity - databaseItem.quantity;
+            if (stockScanMode === "remove" && appliedMovement === 0) {
+              triggerHaptic("warning");
+              showToast(`${databaseItem.name} est déjà à 0`);
+              setLoadingBarcode(null);
+              return;
+            }
+
             const updatedItem = {
               ...databaseItem,
-              quantity: databaseItem.quantity + 1,
+              quantity: nextQuantity,
               lastUpdated: Date.now(),
-              lastMovement: 1,
+              lastMovement: appliedMovement,
             };
             await syncItem(updatedItem);
             triggerHaptic("success");
-            showToast(`+1 ${databaseItem.name} (Total : ${updatedItem.quantity})`);
+            showToast(
+              `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${databaseItem.name} (Total : ${updatedItem.quantity})`,
+            );
+            setLoadingBarcode(null);
+            return;
+          }
+
+          if (stockScanMode === "remove") {
+            triggerHaptic("warning");
+            showToast("Produit introuvable : impossible de retirer du stock");
             setLoadingBarcode(null);
             return;
           }
@@ -320,7 +354,7 @@ export default function App() {
             });
           }
         } catch (error) {
-          console.error("Erreur de recherche/sync produit (Batch Mode):", error);
+          console.error("Erreur de recherche/sync produit (scan automatique):", error);
           showToast("Erreur de recherche produit");
         } finally {
           setLoadingBarcode(null);
@@ -383,7 +417,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal, session, isBatchMode],
+    [inventory, loadingBarcode, actionModal, session, activeTab, isBatchMode, stockScanMode, dbCategories, showToast],
   );
 
   // Hook for physical hardware scanners globally
@@ -712,7 +746,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen text-stone-800 font-sans pb-32">
+    <div className="app-shell text-stone-800 font-sans">
       <Header
         email={session.email}
         inventoryLength={inventory.length}
@@ -727,7 +761,7 @@ export default function App() {
         onSyncNow={() => void flushQueue()}
       />
 
-      <main className="mx-auto max-w-lg px-4 py-4 space-y-4">
+      <main className="app-main space-y-3 sm:space-y-4">
 
         {/* Sync error display */}
         {syncError && (
@@ -751,12 +785,12 @@ export default function App() {
         {/* Content Tabs */}
         {activeTab === "scan" ? (
           /* SCAN TAB */
-          <section className="glass-card rounded-[2rem] p-5 relative overflow-hidden">
+          <section className="glass-card mobile-card relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-40">
               <Sparkles className="w-5 h-5 text-indigo-500" />
             </div>
 
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
                   Scanner
@@ -794,29 +828,6 @@ export default function App() {
                       : "Synchro On"}
               </div>
             </div>
-
-            {/* Mode Scan en Lot (Batch Mode) */}
-            {/* <div className="mb-5 flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
-              <div>
-                <h3 className="text-xs font-bold text-stone-900">Mode Scan en Lot</h3>
-                <p className="text-[10px] text-stone-500 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBatchMode(!isBatchMode)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
-                  isBatchMode ? "bg-indigo-600" : "bg-stone-300"
-                }`}
-                role="switch"
-                aria-checked={isBatchMode}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    isBatchMode ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div> */}
 
             <div className="relative">
               {loadingBarcode && (
@@ -917,9 +928,21 @@ export default function App() {
               </div>
             )}
           </section>
+        ) : activeTab === "autoScan" ? (
+          <AutomaticScanPanel
+            enabled={isBatchMode}
+            mode={stockScanMode}
+            loadingBarcode={loadingBarcode}
+            isOnline={isOnline}
+            pendingCount={pendingCount}
+            syncError={syncError}
+            onEnabledChange={setIsBatchMode}
+            onModeChange={setStockScanMode}
+            onScan={handleScan}
+          />
         ) : activeTab === "stock" ? (
           /* STOCK VIEW TAB */
-          <section className="glass-card rounded-[2rem] p-5 space-y-4">
+          <section className="glass-card mobile-card space-y-4">
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -967,16 +990,16 @@ export default function App() {
               </div>
 
               {/* Financial Stats Summary */}
-              <div className="grid grid-cols-3 gap-2 p-3 bg-stone-50 border border-stone-200 rounded-2xl">
-                <div className="text-center">
+              <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-stone-200 bg-stone-50 p-2 sm:gap-2 sm:p-3">
+                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
                   <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Achat Total</span>
                   <span className="font-mono tabular text-xs font-bold text-stone-700">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
                 </div>
-                <div className="text-center border-x border-stone-200">
+                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
                   <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">CA Potentiel</span>
                   <span className="font-mono tabular text-xs font-bold text-indigo-600">{financialStats.totalSalesVal.toFixed(2)} €</span>
                 </div>
-                <div className="text-center">
+                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
                   <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Marge Brute</span>
                   <span className="font-mono tabular text-xs font-bold text-emerald-600">{financialStats.potentialMargin.toFixed(2)} €</span>
                 </div>
@@ -989,16 +1012,16 @@ export default function App() {
                   placeholder="Rechercher par nom, marque..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-10 w-full rounded-xl glass-input pl-9 pr-3 text-xs text-stone-900 outline-none transition"
+                  className="h-12 w-full rounded-2xl glass-input pl-10 pr-3 text-sm font-semibold text-stone-900 outline-none transition sm:h-10 sm:rounded-xl sm:text-xs"
                 />
               </div>
 
               {/* Dynamic scrollable Category Filter Pills */}
               {categories.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+                <div className="-mx-3 flex gap-2 overflow-x-auto no-scrollbar px-3 pb-1 sm:-mx-4 sm:px-4">
                   <button
                     onClick={() => setSelectedCategory(null)}
-                    className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
+                    className={`min-h-9 shrink-0 rounded-full border px-3 py-2 text-[10px] font-bold transition tap-active select-none ${
                       selectedCategory === null
                         ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-600/20"
                         : "bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300"
@@ -1014,7 +1037,7 @@ export default function App() {
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                        className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition shrink-0 tap-active select-none ${
+                        className={`min-h-9 shrink-0 rounded-full border px-3 py-2 text-[10px] font-bold transition tap-active select-none ${
                           selectedCategory === cat
                             ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-600/20"
                             : "bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300"
@@ -1030,13 +1053,13 @@ export default function App() {
 
             {/* Expanded Filters Drawer */}
             {showFilters && (
-              <div className="grid grid-cols-2 gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-3 text-xs">
                 <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
                   <span className="font-semibold text-stone-500">Trier par</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
+                    className="h-11 rounded-xl border border-stone-200 bg-white p-2 text-stone-900 outline-none transition focus:border-indigo-500"
                   >
                     <option value="recent">Date d'ajout</option>
                     <option value="name">Alphabétique (A-Z)</option>
@@ -1050,7 +1073,7 @@ export default function App() {
                   <select
                     value={stockFilter}
                     onChange={(e) => setStockFilter(e.target.value as any)}
-                    className="rounded-lg border border-stone-200 bg-white p-2 text-stone-900 outline-none focus:border-indigo-500 transition"
+                    className="h-11 rounded-xl border border-stone-200 bg-white p-2 text-stone-900 outline-none transition focus:border-indigo-500"
                   >
                     <option value="all">Tous les articles</option>
                     <option value="instock">En stock (&gt; 5)</option>
@@ -1100,11 +1123,11 @@ export default function App() {
       </main>
 
       {/* Modern Fixed Bottom Tab Bar Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t pb-safe">
-        <div className="mx-auto max-w-lg flex justify-around py-3">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-safe">
+        <div className="glass-panel mx-auto flex max-w-md justify-around rounded-[1.75rem] border px-2 py-2 shadow-2xl shadow-stone-900/10">
           <button
             onClick={() => setActiveTab("scan")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 transition select-none tap-active ${
               activeTab === "scan" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
@@ -1115,8 +1138,20 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab("autoScan")}
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 transition select-none tap-active ${
+              activeTab === "autoScan" ? "text-amber-600" : "text-stone-400 hover:text-stone-700"
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'autoScan' ? 'bg-amber-50' : ''}`}>
+              <Zap className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide">Auto</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("stock")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 transition select-none tap-active ${
               activeTab === "stock" ? "text-emerald-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
@@ -1128,14 +1163,14 @@ export default function App() {
 
           <button
             onClick={() => setActiveTab("categories")}
-            className={`flex flex-col items-center gap-1.5 transition select-none tap-active ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 transition select-none tap-active ${
               activeTab === "categories" ? "text-indigo-600" : "text-stone-400 hover:text-stone-700"
             }`}
           >
             <div className={`p-1.5 rounded-xl transition ${activeTab === 'categories' ? 'bg-indigo-50' : ''}`}>
               <Tags className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-bold tracking-wide">Catégories</span>
+            <span className="text-[10px] font-bold tracking-wide">Catég.</span>
           </button>
         </div>
       </nav>
