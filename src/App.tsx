@@ -23,6 +23,7 @@ import {
 } from "./lib/inventorySync";
 import { fetchCategories } from "./lib/supabaseCategories";
 import { CategoriesManager } from "./components/CategoriesManager";
+import { FinancialDashboard } from "./components/FinancialDashboard";
 import { suggestCategory } from "./lib/autoCategorization";
 import { getSession, signOut, UserSession } from "./lib/supabaseAuth";
 import { getProductData } from "./api";
@@ -41,6 +42,7 @@ import {
   Plus,
   Tags,
   Zap,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
@@ -69,7 +71,7 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [inventorySource, setInventorySource] = useState<"remote" | "cache">("remote");
 
-  const [activeTab, setActiveTab] = useState<"scan" | "autoScan" | "stock" | "categories">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "autoScan" | "stock" | "finance" | "categories">("scan");
   const [dbCategories, setDbCategories] = useState<CategoryItem[]>([]);
   const [actionModal, setActionModal] = useState<ActionModalState>(null);
   const [loadingBarcode, setLoadingBarcode] = useState<string | null>(null);
@@ -1130,6 +1132,8 @@ export default function App() {
               />
             )}
           </section>
+        ) : activeTab === "finance" ? (
+          <FinancialDashboard inventory={inventory} />
         ) : (
           <CategoriesManager
             categories={dbCategories}
@@ -1178,6 +1182,18 @@ export default function App() {
               <Package className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-bold tracking-wide">Stock</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("finance")}
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 transition select-none tap-active ${
+              activeTab === "finance" ? "text-violet-600" : "text-stone-400 hover:text-stone-700"
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition ${activeTab === 'finance' ? 'bg-violet-50' : ''}`}>
+              <ChartNoAxesCombined className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide">Finance</span>
           </button>
 
           <button
