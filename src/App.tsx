@@ -1,12 +1,12 @@
 import { Header } from "./components/Header";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ManualInput } from "./components/ManualInput";
 import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { StockScanMode } from "./components/StockScanModeToggle";
-import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
+import { AutomaticScanPanel, AutoScanQuantity } from "./components/AutomaticScanPanel";
 import { CameraBarcodeScanner } from "./components/CameraBarcodeScanner";
 import { ScannerInputMode, ScannerInputModeToggle } from "./components/ScannerInputModeToggle";
 import { AuthScreen } from "./components/AuthScreen";
@@ -90,6 +90,37 @@ export default function App() {
   const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
   const [scannerInputMode, setScannerInputMode] = useState<ScannerInputMode>("hardware");
   const [isCompactView, setIsCompactView] = useState(true);
+  const [autoScanQuantity, setAutoScanQuantity] = useState<AutoScanQuantity>(1);
+  const [autoScanSessionCount, setAutoScanSessionCount] = useState(0);
+  const [confirmationSoundEnabled, setConfirmationSoundEnabled] = useState(true);
+  const autoScanLockRef = useRef<{ barcode: string; timestamp: number } | null>(null);
+  const AUTO_SCAN_LOCK_MS = 1500;
+
+  const playConfirmationSound = useCallback(() => {
+    if (!confirmationSoundEnabled || typeof window === "undefined") return;
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(1320, audioContext.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.14);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.15);
+  }, [confirmationSoundEnabled]);
 
   const showToast = useCallback((text: string) => {
     const id = Date.now();
@@ -261,9 +292,21 @@ export default function App() {
 
       setLoadingBarcode(barcode);
 
-      // Mode automatique : chaque scan ajoute ou retire 1 unité sans ouvrir de fenêtre.
+      // Mode automatique : chaque scan applique la quantité sélectionnée sans ouvrir de fenêtre.
       if (activeTab === "autoScan" && isBatchMode) {
-        const movement = stockScanMode === "add" ? 1 : -1;
+        const now = Date.now();
+        if (
+          autoScanLockRef.current?.barcode === barcode &&
+          now - autoScanLockRef.current.timestamp < AUTO_SCAN_LOCK_MS
+        ) {
+          triggerHaptic("warning");
+          showToast("Double-scan ignoré");
+          setLoadingBarcode(null);
+          return;
+        }
+        autoScanLockRef.current = { barcode, timestamp: now };
+
+        const movement = autoScanQuantity;
         const existingItem = inventory.find((i) => i.barcode === barcode);
         if (existingItem) {
           const nextQuantity = Math.max(0, existingItem.quantity + movement);
@@ -283,6 +326,8 @@ export default function App() {
           };
           try {
             await syncItem(updatedItem);
+            setAutoScanSessionCount((count) => count + 1);
+            playConfirmationSound();
             triggerHaptic("success");
             showToast(
               `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${existingItem.name} (Total : ${updatedItem.quantity})`,
@@ -317,6 +362,8 @@ export default function App() {
               lastMovement: appliedMovement,
             };
             await syncItem(updatedItem);
+            setAutoScanSessionCount((count) => count + 1);
+            playConfirmationSound();
             triggerHaptic("success");
             showToast(
               `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${databaseItem.name} (Total : ${updatedItem.quantity})`,
@@ -341,13 +388,15 @@ export default function App() {
               imageUrl: data.imageUrl,
               brand: data.brand,
               category: suggested || data.category,
-              quantity: 1,
+              quantity: Math.max(1, movement),
               lastUpdated: Date.now(),
-              lastMovement: 1,
+              lastMovement: Math.max(1, movement),
             };
             await syncItem(item);
+            setAutoScanSessionCount((count) => count + 1);
+            playConfirmationSound();
             triggerHaptic("success");
-            showToast(`${data.name} ajouté (+1)`);
+            showToast(`${data.name} ajouté (+${item.quantity})`);
           } else {
             // Not found, open manual creation modal
             triggerHaptic("warning");
@@ -420,7 +469,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal, session, activeTab, isBatchMode, stockScanMode, dbCategories, showToast],
+    [inventory, loadingBarcode, actionModal, session, activeTab, isBatchMode, stockScanMode, autoScanQuantity, dbCategories, showToast, playConfirmationSound],
   );
 
   // Hook for physical hardware scanners globally
@@ -954,10 +1003,23 @@ export default function App() {
             pendingCount={pendingCount}
             syncError={syncError}
             onEnabledChange={setIsBatchMode}
-            onModeChange={setStockScanMode}
+            onModeChange={(mode) => {
+              setStockScanMode(mode);
+              setAutoScanQuantity(mode === "remove" ? -1 : 1);
+            }}
             scannerInputMode={scannerInputMode}
             onScannerInputModeChange={setScannerInputMode}
             onScan={handleScan}
+            scanQuantity={autoScanQuantity}
+            onScanQuantityChange={(quantity) => {
+              setAutoScanQuantity(quantity);
+              setStockScanMode(quantity < 0 ? "remove" : "add");
+            }}
+            sessionScanCount={autoScanSessionCount}
+            onResetSessionCount={() => setAutoScanSessionCount(0)}
+            confirmationSoundEnabled={confirmationSoundEnabled}
+            onConfirmationSoundEnabledChange={setConfirmationSoundEnabled}
+            scanLockMs={AUTO_SCAN_LOCK_MS}
           />
         ) : activeTab === "stock" ? (
           /* STOCK VIEW TAB */
