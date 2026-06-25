@@ -57,7 +57,31 @@ export function CategoriesManager({
       const previousCategoryName = editingCategory?.name;
 
       await upsertCategory(categoryToSave);
-      showToast(editingCategory ? 'Catégorie modifiée !' : 'Catégorie créée !');
+
+      let renamedProductsCount = 0;
+      if (previousCategoryName && previousCategoryName !== categoryToSave.name) {
+        const previousNameLower = previousCategoryName.trim().toLowerCase();
+        const productsToRename = inventory.filter(
+          (item) => item.category?.trim().toLowerCase() === previousNameLower
+        );
+
+        for (const item of productsToRename) {
+          await syncInventoryItem({
+            ...item,
+            category: categoryToSave.name,
+            lastUpdated: Date.now(),
+          });
+          renamedProductsCount++;
+        }
+      }
+
+      showToast(
+        editingCategory
+          ? renamedProductsCount > 0
+            ? `Catégorie modifiée et ${renamedProductsCount} produit(s) déplacé(s) !`
+            : 'Catégorie modifiée !'
+          : 'Catégorie créée !'
+      );
       if (previousCategoryName && selectedCategoryName === previousCategoryName) {
         setSelectedCategoryName(categoryToSave.name);
       }
@@ -68,6 +92,9 @@ export function CategoriesManager({
       setIsAdding(false);
       setEditingCategory(null);
       await onRefreshCategories();
+      if (renamedProductsCount > 0) {
+        await onRefreshInventory();
+      }
     } catch (err) {
       console.error(err);
       showToast('Erreur lors de la sauvegarde de la catégorie.');
