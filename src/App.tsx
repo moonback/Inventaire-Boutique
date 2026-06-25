@@ -6,6 +6,7 @@ import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { StockScanMode } from "./components/StockScanModeToggle";
+import { SmartphoneCameraScanner } from "./components/SmartphoneCameraScanner";
 import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
@@ -838,10 +839,16 @@ export default function App() {
                   </span>
                 </div>
               )}
-              <ManualInput
-                onScan={handleScan}
-                isActive={!loadingBarcode && !actionModal}
-              />
+              <div className="space-y-3">
+                <ManualInput
+                  onScan={handleScan}
+                  isActive={!loadingBarcode && !actionModal}
+                />
+                <SmartphoneCameraScanner
+                  onScan={handleScan}
+                  isActive={!loadingBarcode && !actionModal}
+                />
+              </div>
             </div>
 
             {/* Recently Scanned Items List */}
