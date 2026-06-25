@@ -150,11 +150,11 @@ export function InventoryGrid({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {groupedItems.map((group) => (
         <div key={group.category} className="space-y-3 product-grid-enter">
           {/* Category Header */}
-          <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+          <div className="sticky top-[8.25rem] z-10 flex items-center justify-between rounded-2xl border border-stone-200 bg-white/85 px-3 py-2 shadow-sm backdrop-blur sm:static sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:shadow-none sm:backdrop-blur-0">
             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">
               {(() => {
                 const catObj = categories.find(c => c.name.toLowerCase() === group.category.toLowerCase());
@@ -167,7 +167,7 @@ export function InventoryGrid({
           </div>
 
           {/* Cards Grid */}
-          <div className={isCompactView ? "flex flex-col gap-1.5" : "grid grid-cols-1 gap-3"}>
+          <div className={isCompactView ? "flex flex-col gap-2" : "grid grid-cols-1 gap-3"}>
             {group.items.map((item) => {
               if (isCompactView) {
                 return (
@@ -178,7 +178,7 @@ export function InventoryGrid({
                     onSwipeLeft={() => onRemove(item.barcode)}
                   >
                     <article
-                      className="relative overflow-hidden rounded-xl border border-stone-200 bg-white px-3 py-2.5 transition-all hover:border-stone-300 hover:shadow-sm cursor-pointer select-none group flex items-center justify-between gap-3"
+                      className="relative flex cursor-pointer select-none items-center justify-between gap-3 overflow-hidden rounded-2xl border border-stone-200 bg-white px-3 py-3 shadow-sm transition-all hover:border-stone-300 hover:shadow-sm group"
                       onClick={() => onEditProduct(item)}
                     >
                       {/* Left Info Column */}
@@ -216,7 +216,7 @@ export function InventoryGrid({
                         <div className="flex items-center rounded-lg bg-stone-50 border border-stone-200">
                           <button
                             onClick={() => onUpdateQuantity(item.barcode, -1)}
-                            className="grid h-7 w-7 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
+                            className="grid h-9 w-9 place-items-center text-stone-500 transition active:scale-90 hover:text-stone-900"
                             aria-label="Diminuer la quantité"
                           >
                             <Minus className="h-2.5 w-2.5" />
@@ -224,7 +224,7 @@ export function InventoryGrid({
 
                           <button
                             onClick={() => onEditQuantity(item)}
-                            className={`px-2 min-w-7 text-center text-[11px] font-bold font-mono tabular transition active:scale-95 cursor-pointer select-none py-0.5 hover:text-indigo-600 ${
+                            className={`min-h-9 min-w-9 cursor-pointer select-none px-2 py-1 text-center font-mono text-xs font-bold tabular transition active:scale-95 hover:text-indigo-600 ${
                               item.quantity <= 5 ? "text-amber-600" : "text-stone-900"
                             }`}
                           >
@@ -233,7 +233,7 @@ export function InventoryGrid({
 
                           <button
                             onClick={() => onUpdateQuantity(item.barcode, 1)}
-                            className="grid h-7 w-7 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition"
+                            className="grid h-9 w-9 place-items-center text-stone-500 transition active:scale-90 hover:text-stone-900"
                             aria-label="Augmenter la quantité"
                           >
                             <Plus className="h-2.5 w-2.5" />
@@ -242,7 +242,7 @@ export function InventoryGrid({
 
                         <button
                           onClick={() => onRemove(item.barcode)}
-                          className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 active:scale-90 hover:bg-rose-50 hover:text-rose-600 transition"
+                          className="grid h-9 w-9 place-items-center rounded-xl text-stone-400 transition active:scale-90 hover:bg-rose-50 hover:text-rose-600"
                           title="Supprimer l'article"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -261,12 +261,12 @@ export function InventoryGrid({
                   onSwipeLeft={() => onRemove(item.barcode)}
                 >
                   <article
-                    className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-stone-300 hover:shadow-md cursor-pointer select-none group"
+                    className="relative cursor-pointer select-none overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-sm transition-all hover:border-stone-300 hover:shadow-md group sm:p-4"
                     onClick={() => onEditProduct(item)}
                   >
                     <div className="flex gap-4">
                       {/* Image Container */}
-                      <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl border border-stone-200 bg-stone-50 p-1.5">
+                      <div className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-xl border border-stone-200 bg-stone-50 p-1.5 sm:h-16 sm:w-16">
                         {item.imageUrl ? (
                           <img
                             src={item.imageUrl}
