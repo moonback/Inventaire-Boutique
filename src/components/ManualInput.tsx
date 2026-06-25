@@ -72,7 +72,7 @@ export function ManualInput({
         onClick={focusInput}
         disabled={!isActive}
         aria-label="Activer le champ de scan"
-        className={`group relative block w-full overflow-hidden rounded-2xl border-2 border-dashed p-6 text-left transition-all duration-300 ${
+        className={`group relative block w-full overflow-hidden rounded-2xl border-2 border-dashed p-4 text-left transition-all duration-300 sm:p-6 ${
           !isActive
             ? "border-stone-200 bg-stone-50 opacity-60"
             : isFocused
@@ -85,16 +85,16 @@ export function ManualInput({
           <span className="pointer-events-none absolute inset-x-6 top-0 h-px animate-scan-line bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div
-            className={`grid h-14 w-14 flex-shrink-0 place-items-center rounded-2xl transition-colors ${
+            className={`grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl transition-colors sm:h-14 sm:w-14 ${
               isActive && isFocused
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                 : "bg-stone-100 text-stone-400 group-hover:text-indigo-500"
             }`}
           >
             <ScanLine
-              className={`h-7 w-7 ${isActive && isFocused ? "animate-pulse" : ""}`}
+              className={`h-6 w-6 sm:h-7 sm:w-7 ${isActive && isFocused ? "animate-pulse" : ""}`}
             />
           </div>
           <div className="min-w-0">
@@ -151,7 +151,7 @@ export function ManualInput({
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className="h-12 min-w-0 flex-1 rounded-xl glass-input px-4 text-base font-semibold font-mono tabular text-stone-900 outline-none transition disabled:opacity-40 sm:h-11 sm:text-sm"
+            className="h-12 min-w-0 flex-1 rounded-2xl glass-input px-4 text-base font-semibold font-mono tabular text-stone-900 outline-none transition disabled:opacity-40 sm:h-11 sm:rounded-xl sm:text-sm"
             placeholder="Saisir ou scanner..."
             disabled={!isActive}
           />
@@ -159,7 +159,7 @@ export function ManualInput({
             type="button"
             onClick={() => submitScan(value)}
             disabled={!value.trim() || !isActive}
-            className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-indigo-600 text-white font-medium shadow-md shadow-indigo-600/25 hover:bg-indigo-700 active:scale-95 disabled:pointer-events-none disabled:opacity-40 transition sm:h-11 sm:w-11"
+            className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white font-medium shadow-md shadow-indigo-600/25 transition hover:bg-indigo-700 active:scale-95 disabled:pointer-events-none disabled:opacity-40 sm:h-11 sm:w-11 sm:rounded-xl"
             aria-label="Valider le code-barres"
           >
             <CornerDownLeft className="h-4 w-4" />
