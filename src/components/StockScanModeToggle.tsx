@@ -24,7 +24,7 @@ export function StockScanModeToggle({
             <h3 className="text-xs font-bold text-stone-900">Scan automatique</h3>
           </div>
           <p className="mt-0.5 text-[10px] text-stone-500">
-            Chaque scan {mode === "add" ? "ajoute" : "retire"} 1 unité sans fenêtre.
+            Chaque scan {mode === "add" ? "ajoute" : "retire"} la quantité sélectionnée sans fenêtre.
           </p>
         </div>
         <button
