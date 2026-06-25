@@ -7,6 +7,7 @@ import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { StockScanMode } from "./components/StockScanModeToggle";
 import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
+import { CameraBarcodeScanner } from "./components/CameraBarcodeScanner";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
@@ -842,6 +843,13 @@ export default function App() {
                 onScan={handleScan}
                 isActive={!loadingBarcode && !actionModal}
               />
+              <div className="mt-4">
+                <CameraBarcodeScanner
+                  enabled={!loadingBarcode && !actionModal}
+                  isBusy={!!loadingBarcode}
+                  onScan={handleScan}
+                />
+              </div>
             </div>
 
             {/* Recently Scanned Items List */}

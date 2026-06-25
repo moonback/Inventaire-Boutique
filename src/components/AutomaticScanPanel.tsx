@@ -1,5 +1,6 @@
 import { Loader2, ScanLine, Zap } from "lucide-react";
 import { ManualInput } from "./ManualInput";
+import { CameraBarcodeScanner } from "./CameraBarcodeScanner";
 import { StockScanModeToggle, StockScanMode } from "./StockScanModeToggle";
 
 interface AutomaticScanPanelProps {
@@ -93,6 +94,13 @@ export function AutomaticScanPanel({
           </div>
         )}
         <ManualInput onScan={onScan} isActive={enabled && !loadingBarcode} />
+        <div className="mt-4">
+          <CameraBarcodeScanner
+            enabled={enabled && !loadingBarcode}
+            isBusy={!!loadingBarcode}
+            onScan={onScan}
+          />
+        </div>
       </div>
 
       {!enabled && (
