@@ -53,6 +53,23 @@ function getMonthLabel(monthKey: string) {
   }).format(new Date(year, month - 1, 1));
 }
 
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getReportDate() {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(new Date());
+}
+
 function buildMonthlyMetrics(inventory: InventoryItem[]): MonthlyMetric[] {
   const currentMonth = new Date();
   const months = Array.from({ length: 6 }, (_, index) => {
@@ -113,7 +130,145 @@ export function FinancialDashboard({ inventory }: FinancialDashboardProps) {
   const maxMonthlyValue = Math.max(...monthlyMetrics.map((month) => month.stockValue), 1);
 
   const handleExportPdf = () => {
-    window.print();
+    const reportWindow = window.open("", "_blank", "noopener,noreferrer,width=1024,height=768");
+    if (!reportWindow) {
+      window.print();
+      return;
+    }
+
+    const generatedAt = getReportDate();
+    const topCategoryRows = topCategories
+      .map((category, index) => {
+        const width = Math.max(8, (category.purchaseValue / maxCategoryValue) * 100);
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td><strong>${escapeHtml(category.name)}</strong><div class="bar"><span style="width:${width}%"></span></div></td>
+            <td>${numberFormatter.format(category.quantity)}</td>
+            <td>${formatCurrency(category.purchaseValue)}</td>
+            <td>${formatCurrency(category.salesValue)}</td>
+            <td>${formatCurrency(category.margin)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const monthlyRows = monthlyMetrics
+      .map((month) => {
+        const height = Math.max(6, (month.stockValue / maxMonthlyValue) * 100);
+        return `
+          <div class="month">
+            <div class="month-chart"><span style="height:${height}%"></span></div>
+            <strong>${escapeHtml(month.label)}</strong>
+            <small>${formatCurrency(month.stockValue)}</small>
+          </div>
+        `;
+      })
+      .join("");
+
+    const inventoryRows = inventory
+      .slice()
+      .sort((a, b) => getPurchaseValue(b) - getPurchaseValue(a))
+      .slice(0, 20)
+      .map((item) => `
+        <tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.category?.trim() || "Sans catégorie")}</td>
+          <td>${numberFormatter.format(item.quantity)}</td>
+          <td>${formatCurrency(item.purchasePrice ?? 0)}</td>
+          <td>${formatCurrency(item.salesPrice ?? 0)}</td>
+          <td>${formatCurrency(getPurchaseValue(item))}</td>
+        </tr>
+      `)
+      .join("");
+
+    reportWindow.document.write(`<!doctype html>
+      <html lang="fr">
+        <head>
+          <meta charset="utf-8" />
+          <title>Rapport financier inventaire</title>
+          <style>
+            @page { size: A4; margin: 14mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; color: #1c1917; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; }
+            main { max-width: 980px; margin: 0 auto; padding: 28px; background: #fff; }
+            header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 3px solid #7c3aed; padding-bottom: 18px; margin-bottom: 22px; }
+            h1 { margin: 0; font-size: 28px; letter-spacing: -0.04em; }
+            h2 { margin: 0 0 10px; font-size: 16px; }
+            p { margin: 4px 0; color: #57534e; }
+            .badge { display: inline-block; margin-bottom: 8px; padding: 5px 9px; border-radius: 999px; background: #ede9fe; color: #6d28d9; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+            .meta { text-align: right; font-size: 12px; }
+            .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+            .kpi { border: 1px solid #e7e5e4; border-radius: 16px; padding: 13px; background: linear-gradient(180deg, #fff, #fafaf9); }
+            .kpi span { display: block; color: #78716c; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+            .kpi strong { display: block; margin-top: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 18px; }
+            .section { break-inside: avoid; border: 1px solid #e7e5e4; border-radius: 18px; padding: 16px; margin-top: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th { text-align: left; color: #57534e; background: #f5f5f4; }
+            th, td { padding: 9px 8px; border-bottom: 1px solid #e7e5e4; vertical-align: top; }
+            .bar { height: 8px; width: 100%; overflow: hidden; border-radius: 999px; background: #ede9fe; margin-top: 6px; }
+            .bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8b5cf6, #4f46e5); }
+            .months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; min-height: 170px; align-items: end; }
+            .month { text-align: center; display: grid; gap: 6px; }
+            .month-chart { height: 116px; display: flex; align-items: end; justify-content: center; border-radius: 14px; background: #f5f5f4; padding: 7px; }
+            .month-chart span { width: 28px; min-height: 8px; border-radius: 999px 999px 0 0; background: linear-gradient(180deg, #38bdf8, #10b981); }
+            .month strong { font-size: 11px; text-transform: uppercase; color: #44403c; }
+            .month small { color: #78716c; }
+            .footer { margin-top: 18px; color: #78716c; font-size: 11px; text-align: center; }
+            .actions { position: sticky; top: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 10px 0; background: #fff; }
+            button { border: 0; border-radius: 12px; background: #7c3aed; color: white; padding: 10px 14px; font-weight: 800; cursor: pointer; }
+            @media print { body { background: #fff; } main { padding: 0; } .actions { display: none; } .section { page-break-inside: avoid; } }
+          </style>
+        </head>
+        <body>
+          <main>
+            <div class="actions"><button onclick="window.print()">Télécharger / imprimer en PDF</button></div>
+            <header>
+              <div>
+                <span class="badge">Finance</span>
+                <h1>Rapport financier inventaire</h1>
+                <p>Valeur du stock, marge potentielle, catégories importantes et évolution mensuelle.</p>
+              </div>
+              <div class="meta">
+                <p><strong>Généré le</strong></p>
+                <p>${escapeHtml(generatedAt)}</p>
+                <p>${numberFormatter.format(inventory.length)} références · ${numberFormatter.format(totalQuantity)} unités</p>
+              </div>
+            </header>
+
+            <section class="kpis">
+              <div class="kpi"><span>Valeur stock</span><strong>${formatCurrency(totalPurchaseValue)}</strong></div>
+              <div class="kpi"><span>CA potentiel</span><strong>${formatCurrency(totalSalesValue)}</strong></div>
+              <div class="kpi"><span>Marge potentielle</span><strong>${formatCurrency(potentialMargin)}</strong></div>
+              <div class="kpi"><span>Taux de marge</span><strong>${marginRate.toFixed(1)} %</strong></div>
+            </section>
+
+            <section class="section">
+              <h2>Top catégories par valeur de stock</h2>
+              <table>
+                <thead><tr><th>#</th><th>Catégorie</th><th>Unités</th><th>Valeur stock</th><th>CA potentiel</th><th>Marge</th></tr></thead>
+                <tbody>${topCategoryRows || `<tr><td colspan="6">Aucune catégorie valorisée.</td></tr>`}</tbody>
+              </table>
+            </section>
+
+            <section class="section">
+              <h2>Évolution mensuelle - 6 derniers mois</h2>
+              <div class="months">${monthlyRows}</div>
+            </section>
+
+            <section class="section">
+              <h2>Top 20 articles par valeur de stock</h2>
+              <table>
+                <thead><tr><th>Article</th><th>Catégorie</th><th>Qté</th><th>Prix achat</th><th>Prix vente</th><th>Valeur stock</th></tr></thead>
+                <tbody>${inventoryRows || `<tr><td colspan="6">Aucun article en stock.</td></tr>`}</tbody>
+              </table>
+            </section>
+            <p class="footer">Rapport généré depuis Inventaire Boutique. Les montants reposent sur les prix actuellement saisis dans l'inventaire.</p>
+          </main>
+        </body>
+      </html>`);
+    reportWindow.document.close();
+    reportWindow.focus();
   };
 
   return (
