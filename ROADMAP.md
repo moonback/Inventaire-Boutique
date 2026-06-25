@@ -85,11 +85,11 @@ L'application doit devenir le **poste de contrôle stock mobile** de la boutique
 
 ### P1 · Productivité scan & inventaire
 
-#### 6. Scan caméra smartphone
-- **Statut :** À faire
+<!-- #### 6. Scan caméra smartphone
+- **Statut :** Fait
 - **Pourquoi :** fonctionner sans douchette physique.
 - **À prévoir :** BarcodeDetector API avec fallback librairie, permission caméra, mode torche, guide visuel.
-- **Impact :** adoption plus facile sur mobile.
+- **Impact :** adoption plus facile sur mobile. -->
 
 #### 7. Comptage d'inventaire par session
 - **Statut :** À faire
