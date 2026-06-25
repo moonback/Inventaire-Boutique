@@ -5,6 +5,7 @@ import { InventoryGrid } from "./components/InventoryGrid";
 import { ManualProductModal } from "./components/ManualProductModal";
 import { QuantityModal } from "./components/QuantityModal";
 import { ScanChoiceModal } from "./components/ScanChoiceModal";
+import { StockScanModeToggle, StockScanMode } from "./components/StockScanModeToggle";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
@@ -82,6 +83,7 @@ export default function App() {
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
   const [isCompactView, setIsCompactView] = useState(false);
 
   const showToast = useCallback((text: string) => {
@@ -254,22 +256,34 @@ export default function App() {
 
       setLoadingBarcode(barcode);
 
-      // Check if already in local state: open choice modal (or increment immediately if in batch mode)
+      // Mode automatique : chaque scan ajoute ou retire 1 unité sans ouvrir de fenêtre.
       if (isBatchMode) {
+        const movement = stockScanMode === "add" ? 1 : -1;
         const existingItem = inventory.find((i) => i.barcode === barcode);
         if (existingItem) {
+          const nextQuantity = Math.max(0, existingItem.quantity + movement);
+          const appliedMovement = nextQuantity - existingItem.quantity;
+          if (stockScanMode === "remove" && appliedMovement === 0) {
+            triggerHaptic("warning");
+            showToast(`${existingItem.name} est déjà à 0`);
+            setLoadingBarcode(null);
+            return;
+          }
+
           const updatedItem = {
             ...existingItem,
-            quantity: existingItem.quantity + 1,
+            quantity: nextQuantity,
             lastUpdated: Date.now(),
-            lastMovement: 1,
+            lastMovement: appliedMovement,
           };
           try {
             await syncItem(updatedItem);
             triggerHaptic("success");
-            showToast(`+1 ${existingItem.name} (Total : ${updatedItem.quantity})`);
+            showToast(
+              `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${existingItem.name} (Total : ${updatedItem.quantity})`,
+            );
           } catch (error) {
-            console.error("Erreur de synchronisation Supabase (Batch Mode):", error);
+            console.error("Erreur de synchronisation Supabase (scan automatique):", error);
             showToast("Erreur de synchronisation");
           } finally {
             setLoadingBarcode(null);
@@ -282,15 +296,33 @@ export default function App() {
             ? await fetchInventoryItemWithFallback(barcode)
             : null;
           if (databaseItem) {
+            const nextQuantity = Math.max(0, databaseItem.quantity + movement);
+            const appliedMovement = nextQuantity - databaseItem.quantity;
+            if (stockScanMode === "remove" && appliedMovement === 0) {
+              triggerHaptic("warning");
+              showToast(`${databaseItem.name} est déjà à 0`);
+              setLoadingBarcode(null);
+              return;
+            }
+
             const updatedItem = {
               ...databaseItem,
-              quantity: databaseItem.quantity + 1,
+              quantity: nextQuantity,
               lastUpdated: Date.now(),
-              lastMovement: 1,
+              lastMovement: appliedMovement,
             };
             await syncItem(updatedItem);
             triggerHaptic("success");
-            showToast(`+1 ${databaseItem.name} (Total : ${updatedItem.quantity})`);
+            showToast(
+              `${appliedMovement > 0 ? "+" : ""}${appliedMovement} ${databaseItem.name} (Total : ${updatedItem.quantity})`,
+            );
+            setLoadingBarcode(null);
+            return;
+          }
+
+          if (stockScanMode === "remove") {
+            triggerHaptic("warning");
+            showToast("Produit introuvable : impossible de retirer du stock");
             setLoadingBarcode(null);
             return;
           }
@@ -320,7 +352,7 @@ export default function App() {
             });
           }
         } catch (error) {
-          console.error("Erreur de recherche/sync produit (Batch Mode):", error);
+          console.error("Erreur de recherche/sync produit (scan automatique):", error);
           showToast("Erreur de recherche produit");
         } finally {
           setLoadingBarcode(null);
@@ -383,7 +415,7 @@ export default function App() {
         setLoadingBarcode(null);
       }
     },
-    [inventory, loadingBarcode, actionModal, session, isBatchMode],
+    [inventory, loadingBarcode, actionModal, session, isBatchMode, stockScanMode, dbCategories, showToast],
   );
 
   // Hook for physical hardware scanners globally
@@ -795,28 +827,12 @@ export default function App() {
               </div>
             </div>
 
-            {/* Mode Scan en Lot (Batch Mode) */}
-            {/* <div className="mb-5 flex items-center justify-between p-3.5 bg-stone-50 border border-stone-200 rounded-2xl">
-              <div>
-                <h3 className="text-xs font-bold text-stone-900">Mode Scan en Lot</h3>
-                <p className="text-[10px] text-stone-500 mt-0.5">Ajoute automatiquement +1 au stock sans ouvrir de fenêtres</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBatchMode(!isBatchMode)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
-                  isBatchMode ? "bg-indigo-600" : "bg-stone-300"
-                }`}
-                role="switch"
-                aria-checked={isBatchMode}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    isBatchMode ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div> */}
+            <StockScanModeToggle
+              enabled={isBatchMode}
+              mode={stockScanMode}
+              onEnabledChange={setIsBatchMode}
+              onModeChange={setStockScanMode}
+            />
 
             <div className="relative">
               {loadingBarcode && (
