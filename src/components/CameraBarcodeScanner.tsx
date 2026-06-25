@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Camera, CameraOff, Flashlight, FlashlightOff, Loader2, ScanLine, ShieldAlert } from "lucide-react";
+import { Camera, CameraOff, Flashlight, FlashlightOff, Loader2, ScanLine, ShieldAlert, X } from "lucide-react";
 
 const BARCODE_FORMATS = [
   "ean_13",
@@ -61,6 +61,9 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
   const [engine, setEngine] = useState<ScannerEngine>(null);
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchEnabled, setTorchEnabled] = useState(false);
+  const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [isCameraPickerOpen, setIsCameraPickerOpen] = useState(false);
 
   const canScan = enabled && !isBusy;
 
@@ -80,6 +83,17 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
     setTorchSupported(false);
     setTorchEnabled(false);
     setEngine(null);
+    setIsCameraPickerOpen(false);
+  }, []);
+
+
+  const refreshVideoInputs = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((device) => device.kind === "videoinput");
+    setVideoInputs(cameras);
+    return cameras;
   }, []);
 
   const emitScan = useCallback(
@@ -118,8 +132,8 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
     [emitScan],
   );
 
-  const startCamera = useCallback(async () => {
-    if (!canScan || isStarting || isOpen) return;
+  const startCamera = useCallback(async (cameraId = selectedCameraId, forceRestart = false) => {
+    if (!canScan || isStarting || (isOpen && !forceRestart)) return;
 
     setIsStarting(true);
     setError(null);
@@ -130,12 +144,16 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
         throw new Error("La caméra n’est pas disponible sur ce navigateur.");
       }
 
+      const videoConstraints: MediaTrackConstraints = {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        ...(cameraId
+          ? { deviceId: { exact: cameraId } }
+          : { facingMode: { ideal: "environment" } }),
+      };
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: videoConstraints,
         audio: false,
       });
       streamRef.current = stream;
@@ -146,6 +164,10 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
       await video.play();
 
       const [track] = stream.getVideoTracks();
+      const activeCameraId = track?.getSettings().deviceId ?? cameraId ?? null;
+      if (activeCameraId) setSelectedCameraId(activeCameraId);
+      await refreshVideoInputs();
+
       const capabilities = track?.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
       setTorchSupported(Boolean(capabilities?.torch));
       setIsOpen(true);
@@ -175,7 +197,25 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
     } finally {
       setIsStarting(false);
     }
-  }, [canScan, detectWithNativeApi, emitScan, isOpen, isStarting, stopCamera]);
+  }, [canScan, detectWithNativeApi, emitScan, isOpen, isStarting, refreshVideoInputs, selectedCameraId, stopCamera]);
+
+
+  const handleCameraSelection = useCallback(
+    (cameraId: string) => {
+      if (cameraId === selectedCameraId && isOpen) {
+        setIsCameraPickerOpen(false);
+        return;
+      }
+
+      setSelectedCameraId(cameraId);
+      setIsCameraPickerOpen(false);
+      if (isOpen) {
+        stopCamera();
+        void startCamera(cameraId, true);
+      }
+    },
+    [isOpen, selectedCameraId, startCamera, stopCamera],
+  );
 
   const toggleTorch = useCallback(async () => {
     const track = streamRef.current?.getVideoTracks()[0];
@@ -196,6 +236,13 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
   useEffect(() => {
     if (!canScan && isOpen) stopCamera();
   }, [canScan, isOpen, stopCamera]);
+
+  const selectedCamera = useMemo(
+    () => videoInputs.find((device) => device.deviceId === selectedCameraId),
+    [selectedCameraId, videoInputs],
+  );
+
+  const selectedCameraLabel = selectedCamera?.label || "Caméra active";
 
   const engineLabel = useMemo(() => {
     if (engine === "native") return "BarcodeDetector";
@@ -248,13 +295,30 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          onClick={isOpen ? stopCamera : startCamera}
+          onClick={() => {
+            if (isOpen) {
+              stopCamera();
+            } else {
+              void startCamera();
+            }
+          }}
           disabled={!canScan || isStarting}
           className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 text-xs font-bold text-white shadow-md shadow-sky-600/20 transition hover:bg-sky-700 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
         >
           {isOpen ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
           {isOpen ? "Arrêter" : "Scanner avec la caméra"}
         </button>
+        {videoInputs.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setIsCameraPickerOpen(true)}
+            className="grid h-11 w-11 place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition hover:text-sky-700"
+            aria-label={`Choisir la caméra. Caméra actuelle : ${selectedCameraLabel}`}
+            title={`Choisir caméra · ${selectedCameraLabel}`}
+          >
+            <Camera className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={toggleTorch}
@@ -271,6 +335,47 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
         <div className={`mt-3 flex gap-2 rounded-2xl border px-3 py-2 text-[11px] font-semibold ${error ? "border-rose-200 bg-rose-50 text-rose-600" : "border-sky-200 bg-sky-50 text-sky-700"}`}>
           {error && <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
           <span>{error || status}</span>
+        </div>
+      )}
+
+      {isCameraPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="w-full max-w-sm rounded-t-3xl border border-stone-200 bg-white p-4 shadow-2xl sm:rounded-3xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-stone-900">Choisir une caméra</p>
+                <p className="mt-1 text-[11px] font-medium text-stone-500">Caméra actuelle : {selectedCameraLabel}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCameraPickerOpen(false)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-stone-100 text-stone-500 transition hover:bg-stone-200 hover:text-stone-800"
+                aria-label="Fermer le choix de caméra"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {videoInputs.map((device, index) => (
+                <button
+                  key={device.deviceId || `camera-${index}`}
+                  type="button"
+                  onClick={() => handleCameraSelection(device.deviceId)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left text-xs font-bold transition ${
+                    device.deviceId === selectedCameraId
+                      ? "border-sky-200 bg-sky-50 text-sky-700"
+                      : "border-stone-200 bg-white text-stone-700 hover:border-sky-200 hover:bg-sky-50/60 hover:text-sky-700"
+                  }`}
+                >
+                  <span>{device.label || `Caméra ${index + 1}`}</span>
+                  {device.deviceId === selectedCameraId && (
+                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] uppercase tracking-wide">Active</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

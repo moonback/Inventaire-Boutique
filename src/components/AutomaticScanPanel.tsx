@@ -89,31 +89,35 @@ export function AutomaticScanPanel({
         onModeChange={onModeChange}
       />
 
-      <ScannerInputModeToggle
-        mode={scannerInputMode}
-        onModeChange={onScannerInputModeChange}
-        disabled={!!loadingBarcode}
-      />
-
-      <div className="relative">
-        {loadingBarcode && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white/95 text-stone-700 backdrop-blur-xs">
-            <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-600" />
-            <span className="font-mono text-xs font-semibold tracking-wider">
-              Scan {loadingBarcode}...
-            </span>
-          </div>
-        )}
-        {scannerInputMode === "hardware" ? (
-          <ManualInput onScan={onScan} isActive={enabled && !loadingBarcode} />
-        ) : (
-          <CameraBarcodeScanner
-            enabled={enabled && !loadingBarcode}
-            isBusy={!!loadingBarcode}
-            onScan={onScan}
+      {enabled && (
+        <>
+          <ScannerInputModeToggle
+            mode={scannerInputMode}
+            onModeChange={onScannerInputModeChange}
+            disabled={!!loadingBarcode}
           />
-        )}
-      </div>
+
+          <div className="relative">
+            {loadingBarcode && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white/95 text-stone-700 backdrop-blur-xs">
+                <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-600" />
+                <span className="font-mono text-xs font-semibold tracking-wider">
+                  Scan {loadingBarcode}...
+                </span>
+              </div>
+            )}
+            {scannerInputMode === "hardware" ? (
+              <ManualInput onScan={onScan} isActive={!loadingBarcode} />
+            ) : (
+              <CameraBarcodeScanner
+                enabled={!loadingBarcode}
+                isBusy={!!loadingBarcode}
+                onScan={onScan}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       {!enabled && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-700">
