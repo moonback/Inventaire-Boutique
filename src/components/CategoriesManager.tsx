@@ -27,15 +27,32 @@ export function CategoriesManager({
   onRefreshInventory,
   showToast
 }: CategoriesManagerProps) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryItem | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📦');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isAutoCategorizing, setIsAutoCategorizing] = useState(false);
+
+  const closeCategoryModal = (force = false) => {
+    if (isLoading && !force) return;
+    setIsCategoryModalOpen(false);
+    setEditingCategory(null);
+    setName('');
+    setIcon('📦');
+  };
+
+  const openCreateModal = () => {
+    setEditingCategory(null);
+    setName('');
+    setIcon('📦');
+    setIsCategoryModalOpen(true);
+  };
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,17 +74,40 @@ export function CategoriesManager({
       const previousCategoryName = editingCategory?.name;
 
       await upsertCategory(categoryToSave);
-      showToast(editingCategory ? 'Catégorie modifiée !' : 'Catégorie créée !');
+
+      let renamedProductsCount = 0;
+      if (previousCategoryName && previousCategoryName !== categoryToSave.name) {
+        const previousNameLower = previousCategoryName.trim().toLowerCase();
+        const productsToRename = inventory.filter(
+          (item) => item.category?.trim().toLowerCase() === previousNameLower
+        );
+
+        for (const item of productsToRename) {
+          await syncInventoryItem({
+            ...item,
+            category: categoryToSave.name,
+            lastUpdated: Date.now(),
+          });
+          renamedProductsCount++;
+        }
+      }
+
+      showToast(
+        editingCategory
+          ? renamedProductsCount > 0
+            ? `Catégorie modifiée et ${renamedProductsCount} produit(s) déplacé(s) !`
+            : 'Catégorie modifiée !'
+          : 'Catégorie créée !'
+      );
       if (previousCategoryName && selectedCategoryName === previousCategoryName) {
         setSelectedCategoryName(categoryToSave.name);
       }
 
-      // Reset form
-      setName('');
-      setIcon('📦');
-      setIsAdding(false);
-      setEditingCategory(null);
+      closeCategoryModal(true);
       await onRefreshCategories();
+      if (renamedProductsCount > 0) {
+        await onRefreshInventory();
+      }
     } catch (err) {
       console.error(err);
       showToast('Erreur lors de la sauvegarde de la catégorie.');
@@ -80,33 +120,32 @@ export function CategoriesManager({
     setEditingCategory(category);
     setName(category.name);
     setIcon(category.icon || '📦');
-    setIsAdding(true);
+    setIsCategoryModalOpen(true);
   };
 
-  const handleDelete = async (category: CategoryItem) => {
+  const handleDelete = (category: CategoryItem) => {
     if (!category.id) return;
+    setCategoryToDelete(category);
+  };
 
-    const itemCount = inventory.filter(
-      (item) => item.category?.trim().toLowerCase() === category.name.trim().toLowerCase()
-    ).length;
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete?.id) return;
 
-    const msg = itemCount > 0
-      ? `Attention : ${itemCount} article(s) appartienne(nt) à cette catégorie. Si vous la supprimez, ils ne seront pas supprimés mais n'auront plus de catégorie. Confirmer la suppression ?`
-      : `Voulez-vous vraiment supprimer la catégorie "${category.icon || ''} ${category.name}" ?`;
-
-    if (confirm(msg)) {
-      triggerHaptic('warning');
-      try {
-        await deleteCategory(category.id);
-        showToast('Catégorie supprimée.');
-        if (selectedCategoryName === category.name) {
-          setSelectedCategoryName(null);
-        }
-        await onRefreshCategories();
-      } catch (err) {
-        console.error(err);
-        showToast('Erreur lors de la suppression.');
+    setIsDeleting(true);
+    triggerHaptic('warning');
+    try {
+      await deleteCategory(categoryToDelete.id);
+      showToast('Catégorie supprimée.');
+      if (selectedCategoryName === categoryToDelete.name) {
+        setSelectedCategoryName(null);
       }
+      setCategoryToDelete(null);
+      await onRefreshCategories();
+    } catch (err) {
+      console.error(err);
+      showToast('Erreur lors de la suppression.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -183,12 +222,7 @@ export function CategoriesManager({
           </button>
 
           <button
-            onClick={() => {
-              setIsAdding(true);
-              setEditingCategory(null);
-              setName('');
-              setIcon('📦');
-            }}
+            onClick={openCreateModal}
             className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700 sm:flex-none"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -197,92 +231,197 @@ export function CategoriesManager({
         </div>
       </div>
 
-      {/* Add / Edit Category Dialog */}
+      {/* Add / Edit Category Modal */}
       <AnimatePresence>
-        {isAdding && (
+        {isCategoryModalOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/45 p-3 backdrop-blur-sm sm:items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={closeCategoryModal}
           >
-            <form onSubmit={handleSave} className="p-4 rounded-2xl border border-stone-200 bg-stone-50 space-y-4">
-              <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
-                  {editingCategory ? 'Modifier la catégorie' : 'Créer une catégorie'}
-                </span>
+            <motion.form
+              onSubmit={handleSave}
+              onMouseDown={(event) => event.stopPropagation()}
+              initial={{ opacity: 0, y: 28, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+              className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl shadow-stone-950/20"
+            >
+              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-500 px-5 py-5 text-white">
+                <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/15" />
+                <div className="absolute -bottom-14 left-8 h-28 w-28 rounded-full bg-white/10" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-100">
+                      {editingCategory ? 'Édition' : 'Création'}
+                    </span>
+                    <h3 className="mt-1 text-lg font-black tracking-tight">
+                      {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+                    </h3>
+                    <p className="mt-1 max-w-sm text-xs font-medium text-indigo-50/90">
+                      Choisissez un nom clair et une icône pour retrouver vos produits plus rapidement.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeCategoryModal}
+                    disabled={isLoading}
+                    className="rounded-2xl bg-white/15 p-2 text-white transition hover:bg-white/25 disabled:opacity-50"
+                    aria-label="Fermer la fenêtre"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-5 p-5">
+                <div className="grid grid-cols-[5.5rem_1fr] gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-stone-500">Icône</label>
+                    <input
+                      type="text"
+                      maxLength={2}
+                      value={icon}
+                      onChange={(e) => setIcon(e.target.value)}
+                      className="h-14 w-full rounded-2xl border border-stone-200 bg-stone-50 text-center text-2xl outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                      placeholder="📦"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-stone-500">Nom de la catégorie *</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="h-14 w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm font-bold text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                      placeholder="Ex: Épicerie, Boissons..."
+                      autoFocus
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-stone-500">Suggestions d'icônes</label>
+                  <div className="grid max-h-36 grid-cols-8 gap-1.5 overflow-y-auto rounded-2xl border border-stone-200 bg-stone-50 p-2 sm:grid-cols-10">
+                    {COMMON_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setIcon(emoji)}
+                        className={`grid h-9 w-full place-items-center rounded-xl text-base transition hover:bg-white hover:shadow-sm ${
+                          icon === emoji ? 'bg-indigo-100 ring-2 ring-indigo-300' : 'bg-transparent'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-[11px] font-semibold leading-relaxed text-indigo-700">
+                  {editingCategory
+                    ? 'Si vous changez le nom, les produits associés seront automatiquement déplacés vers cette nouvelle catégorie.'
+                    : 'La catégorie sera disponible immédiatement dans les fiches produit et le classement automatique.'}
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsAdding(false)}
-                  className="text-stone-400 hover:text-stone-900"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-1">
-                  <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Icône</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    value={icon}
-                    onChange={(e) => setIcon(e.target.value)}
-                    className="w-full h-10 text-center glass-input rounded-xl text-lg outline-none transition"
-                    placeholder="📦"
-                  />
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Nom de la catégorie *</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full h-10 px-3 glass-input rounded-xl text-xs font-semibold text-stone-900 outline-none transition"
-                    placeholder="Ex: Épicerie, Boissons..."
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Common Emojis Quick Picker */}
-              <div>
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Suggestions d'icônes</label>
-                <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1 bg-white rounded-xl border border-stone-200">
-                  {COMMON_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => setIcon(emoji)}
-                      className={`w-7 h-7 flex items-center justify-center rounded-lg text-sm transition hover:bg-stone-100 ${
-                        icon === emoji ? 'bg-indigo-100 border border-indigo-300' : ''
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAdding(false)}
-                  className="px-3 py-2 text-[10px] font-bold text-stone-500 bg-transparent border border-stone-200 hover:bg-white rounded-xl transition"
+                  onClick={closeCategoryModal}
+                  disabled={isLoading}
+                  className="min-h-11 rounded-2xl border border-stone-200 bg-white px-4 text-xs font-bold text-stone-600 transition hover:bg-stone-100 disabled:opacity-50"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading || !name.trim()}
-                  className="px-3 py-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center gap-1 shadow-md shadow-indigo-600/20 disabled:opacity-40"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-xs font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:opacity-40"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  Sauvegarder
+                  <Check className="h-4 w-4" />
+                  {isLoading ? 'Sauvegarde...' : editingCategory ? 'Enregistrer' : 'Créer la catégorie'}
                 </button>
               </div>
-            </form>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Category Modal */}
+      <AnimatePresence>
+        {categoryToDelete && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/45 p-3 backdrop-blur-sm sm:items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => !isDeleting && setCategoryToDelete(null)}
+          >
+            <motion.div
+              onMouseDown={(event) => event.stopPropagation()}
+              initial={{ opacity: 0, y: 28, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+              className="w-full max-w-md overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl shadow-stone-950/20"
+            >
+              <div className="p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-50 text-xl ring-1 ring-rose-100">
+                      {categoryToDelete.icon || '📦'}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-500">Suppression</span>
+                      <h3 className="mt-0.5 text-base font-black text-stone-900">Supprimer la catégorie ?</h3>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryToDelete(null)}
+                    disabled={isDeleting}
+                    className="rounded-2xl p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900 disabled:opacity-50"
+                    aria-label="Fermer la fenêtre"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="text-sm font-semibold text-stone-700">
+                  Vous êtes sur le point de supprimer <span className="font-black">{categoryToDelete.name}</span>.
+                </p>
+                <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-[11px] font-semibold leading-relaxed text-rose-700">
+                  {inventory.filter((item) => item.category?.trim().toLowerCase() === categoryToDelete.name.trim().toLowerCase()).length > 0
+                    ? `${inventory.filter((item) => item.category?.trim().toLowerCase() === categoryToDelete.name.trim().toLowerCase()).length} produit(s) utilisent cette catégorie. Ils resteront dans l'inventaire, mais leur ancien nom de catégorie ne sera plus géré.`
+                    : 'Aucun produit ne semble utiliser cette catégorie actuellement.'}
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCategoryToDelete(null)}
+                  disabled={isDeleting}
+                  className="min-h-11 rounded-2xl border border-stone-200 bg-white px-4 text-xs font-bold text-stone-600 transition hover:bg-stone-100 disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 text-xs font-bold text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700 disabled:opacity-40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {isDeleting ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

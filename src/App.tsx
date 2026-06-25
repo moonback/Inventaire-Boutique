@@ -427,10 +427,17 @@ export default function App() {
   useHardwareScanner(handleScan);
 
   // Real-time synchronization callbacks
+  const shouldApplyRealtimeItem = (current: InventoryItem | undefined, incoming: InventoryItem) => {
+    return !current || incoming.lastUpdated >= current.lastUpdated;
+  };
+
   const handleRealtimeInsert = useCallback((item: InventoryItem) => {
     setInventory((prev) => {
-      if (prev.some((i) => i.barcode === item.barcode)) {
-        return prev.map((i) => (i.barcode === item.barcode ? item : i));
+      const existing = prev.find((i) => i.barcode === item.barcode);
+      if (existing) {
+        return shouldApplyRealtimeItem(existing, item)
+          ? prev.map((i) => (i.barcode === item.barcode ? item : i))
+          : prev;
       }
       return [item, ...prev];
     });
@@ -438,7 +445,9 @@ export default function App() {
 
   const handleRealtimeUpdate = useCallback((item: InventoryItem) => {
     setInventory((prev) =>
-      prev.map((i) => (i.barcode === item.barcode ? item : i))
+      prev.map((i) => (
+        i.barcode === item.barcode && shouldApplyRealtimeItem(i, item) ? item : i
+      ))
     );
   }, []);
 

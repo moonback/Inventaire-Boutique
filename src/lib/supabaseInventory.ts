@@ -1,11 +1,9 @@
 import { InventoryItem } from '../types';
-import { clearSession, getSession } from './supabaseAuth';
+import { getHeaders, getRestUrl as getTableRestUrl, getSupabaseBaseUrl, isSupabaseConfigured as isSupabaseRestConfigured, handleSupabaseUnauthorized, parseSupabaseError, request } from './supabaseRest';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 const inventoryTable = import.meta.env.VITE_SUPABASE_INVENTORY_TABLE || 'inventory_items';
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = isSupabaseRestConfigured;
 
 export interface SupabaseInventoryRow {
   barcode: string;
@@ -21,29 +19,7 @@ export interface SupabaseInventoryRow {
 }
 
 function getRestUrl(path = '') {
-  if (!supabaseUrl) {
-    throw new Error('VITE_SUPABASE_URL est manquant.');
-  }
-
-  return `${supabaseUrl.replace(/\/$/, '')}/rest/v1/${inventoryTable}${path}`;
-}
-
-function getHeaders(extraHeaders?: HeadersInit): HeadersInit {
-  if (!supabaseAnonKey) {
-    throw new Error('VITE_SUPABASE_ANON_KEY est manquant.');
-  }
-
-  const session = getSession();
-  const authHeader = session?.accessToken
-    ? `Bearer ${session.accessToken}`
-    : `Bearer ${supabaseAnonKey}`;
-
-  return {
-    apikey: supabaseAnonKey,
-    Authorization: authHeader,
-    'Content-Type': 'application/json',
-    ...extraHeaders,
-  };
+  return getTableRestUrl(inventoryTable, path);
 }
 
 function toRow(item: InventoryItem): SupabaseInventoryRow {
@@ -76,46 +52,26 @@ export function toInventoryItem(row: SupabaseInventoryRow): InventoryItem {
   };
 }
 
-async function parseSupabaseError(response: Response) {
-  const body = await response.text();
-  try {
-    const error = JSON.parse(body);
-    return error.message || body;
-  } catch {
-    return body || response.statusText;
-  }
-}
+export async function fetchInventoryItems(pageSize = 500): Promise<InventoryItem[]> {
+  const allRows: SupabaseInventoryRow[] = [];
+  let offset = 0;
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
+  while (true) {
+    const rows = await request<SupabaseInventoryRow[]>(
+      getRestUrl(`?select=*&order=last_updated.desc&limit=${pageSize}&offset=${offset}`),
+      { headers: getHeaders() },
+    );
 
-  if (response.status === 401) {
-    // Token JWT expiré ou invalide : forcer re-login.
-    try {
-      clearSession();
-    } catch {
-      // ignore
+    allRows.push(...rows);
+
+    if (rows.length < pageSize) {
+      break;
     }
+
+    offset += pageSize;
   }
 
-  if (!response.ok) {
-    throw new Error(await parseSupabaseError(response));
-  }
-
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
-}
-
-export async function fetchInventoryItems(): Promise<InventoryItem[]> {
-  const rows = await request<SupabaseInventoryRow[]>(getRestUrl('?select=*&order=last_updated.desc'), {
-    headers: getHeaders(),
-  });
-
-  return rows.map(toInventoryItem);
+  return allRows.map(toInventoryItem);
 }
 
 
@@ -145,13 +101,14 @@ export async function deleteInventoryItem(barcode: string): Promise<void> {
 }
 
 export async function uploadProductImage(barcode: string, file: File): Promise<string> {
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!isSupabaseConfigured) {
     throw new Error("Supabase n'est pas configuré.");
   }
 
   const extension = file.name.split('.').pop() || 'jpg';
   const fileName = `${barcode}_${Date.now()}.${extension}`;
-  const uploadUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/product-photos/${fileName}`;
+  const baseUrl = getSupabaseBaseUrl();
+  const uploadUrl = `${baseUrl}/storage/v1/object/product-photos/${fileName}`;
 
   const headers = {
     ...getHeaders(),
@@ -165,9 +122,14 @@ export async function uploadProductImage(barcode: string, file: File): Promise<s
     body: file,
   });
 
+  if (response.status === 401) {
+    // Même gestion que les appels REST : la session locale n'est plus valide.
+    handleSupabaseUnauthorized();
+  }
+
   if (!response.ok) {
     throw new Error(await parseSupabaseError(response));
   }
 
-  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/product-photos/${fileName}`;
+  return `${baseUrl}/storage/v1/object/public/product-photos/${fileName}`;
 }
