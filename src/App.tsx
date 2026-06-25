@@ -8,6 +8,7 @@ import { ScanChoiceModal } from "./components/ScanChoiceModal";
 import { StockScanMode } from "./components/StockScanModeToggle";
 import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
 import { CameraBarcodeScanner } from "./components/CameraBarcodeScanner";
+import { ScannerInputMode, ScannerInputModeToggle } from "./components/ScannerInputModeToggle";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
@@ -87,6 +88,7 @@ export default function App() {
   const [showFilters, setShowFilters] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
+  const [scannerInputMode, setScannerInputMode] = useState<ScannerInputMode>("hardware");
   const [isCompactView, setIsCompactView] = useState(true);
 
   const showToast = useCallback((text: string) => {
@@ -830,7 +832,13 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative">
+            <ScannerInputModeToggle
+              mode={scannerInputMode}
+              onModeChange={setScannerInputMode}
+              disabled={!!loadingBarcode || !!actionModal}
+            />
+
+            <div className="relative mt-4">
               {loadingBarcode && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/95 border border-stone-200 text-stone-700 backdrop-blur-xs">
                   <Loader2 className="mb-2 h-6 w-6 animate-spin text-indigo-600" />
@@ -839,17 +847,18 @@ export default function App() {
                   </span>
                 </div>
               )}
-              <ManualInput
-                onScan={handleScan}
-                isActive={!loadingBarcode && !actionModal}
-              />
-              <div className="mt-4">
+              {scannerInputMode === "hardware" ? (
+                <ManualInput
+                  onScan={handleScan}
+                  isActive={!loadingBarcode && !actionModal}
+                />
+              ) : (
                 <CameraBarcodeScanner
                   enabled={!loadingBarcode && !actionModal}
                   isBusy={!!loadingBarcode}
                   onScan={handleScan}
                 />
-              </div>
+              )}
             </div>
 
             {/* Recently Scanned Items List */}
@@ -946,6 +955,8 @@ export default function App() {
             syncError={syncError}
             onEnabledChange={setIsBatchMode}
             onModeChange={setStockScanMode}
+            scannerInputMode={scannerInputMode}
+            onScannerInputModeChange={setScannerInputMode}
             onScan={handleScan}
           />
         ) : activeTab === "stock" ? (
