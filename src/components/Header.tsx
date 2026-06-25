@@ -34,10 +34,10 @@ export function Header({
       : "En ligne";
 
   const connectionColor = !isOnline
-    ? "text-rose-600"
+    ? "text-rose-600 bg-rose-50 border-rose-200"
     : pendingCount > 0
-      ? "text-amber-600"
-      : "text-emerald-600";
+      ? "text-amber-600 bg-amber-50 border-amber-200"
+      : "text-emerald-600 bg-emerald-50 border-emerald-200";
 
   const connectionDot = !isOnline
     ? "bg-rose-500"
@@ -46,29 +46,30 @@ export function Header({
       : "bg-emerald-500";
 
   return (
-    <header className="sticky top-0 z-40 glass-panel border-b">
-      <div className="mx-auto max-w-lg px-4 pt-3.5 pb-2">
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/25">
+    <header className="sticky top-0 z-40 glass-panel border-b pt-safe">
+      <div className="mx-auto w-full max-w-2xl px-3 pb-2.5 pt-2.5 sm:px-4 sm:pt-3.5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
               <Store className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-extrabold tracking-tight text-stone-900 flex items-center gap-1.5 truncate">
+              <h1 className="flex items-center gap-1.5 truncate text-lg font-extrabold tracking-tight text-stone-950">
                 Boutique
                 <span className={`flex h-2 w-2 rounded-full ${connectionDot}`} />
               </h1>
-              <p className="text-[10px] text-stone-500 font-semibold truncate max-w-[140px] sm:max-w-none">
+              <p className="max-w-[46vw] truncate text-[10px] font-semibold text-stone-500 sm:max-w-none">
                 {email}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-shrink-0 items-center gap-1.5">
             {pendingCount > 0 && isOnline && onSyncNow && (
               <button
                 onClick={onSyncNow}
                 disabled={isSyncing}
-                className="flex items-center justify-center p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100 tap-active transition disabled:opacity-50"
+                className="touch-target grid place-items-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-600 transition tap-active disabled:opacity-50"
                 title="Synchroniser les modifications en attente"
               >
                 {isSyncing ? (
@@ -81,7 +82,7 @@ export function Header({
             {showExport && (
               <button
                 onClick={onExport}
-                className="flex items-center justify-center p-2.5 rounded-xl bg-white border border-stone-200 text-stone-600 hover:text-stone-900 hover:border-stone-300 shadow-sm tap-active transition"
+                className="touch-target grid place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-sm transition tap-active hover:border-stone-300 hover:text-stone-900"
                 title="Exporter l'inventaire en CSV"
               >
                 <Download className="h-4 w-4" />
@@ -89,7 +90,7 @@ export function Header({
             )}
             <button
               onClick={onLogout}
-              className="flex items-center justify-center p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 tap-active transition"
+              className="touch-target grid place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition tap-active hover:bg-rose-100"
               title="Se déconnecter"
             >
               <LogOut className="h-4 w-4" />
@@ -97,34 +98,33 @@ export function Header({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-stone-200/80 pt-2 pb-0.5 text-[10px] font-semibold text-stone-500">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span>Réf : <strong className="text-stone-900 font-bold font-mono tabular">{inventoryLength}</strong></span>
+        <div className="grid grid-cols-4 gap-1.5 text-[9px] font-semibold text-stone-500 sm:gap-2 sm:text-[10px]">
+          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Réf.</span>
+            <strong className="font-mono text-sm font-extrabold tabular text-stone-950">{inventoryLength}</strong>
           </div>
-          <div className="h-3 w-px bg-stone-200" />
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Total : <strong className="text-stone-900 font-bold font-mono tabular">{totalItems}</strong></span>
+          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Total</span>
+            <strong className="font-mono text-sm font-extrabold tabular text-emerald-700">{totalItems}</strong>
           </div>
-          <div className="h-3 w-px bg-stone-200" />
-          <div className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${lowStockCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-            <span>Alerte : <strong className="text-stone-900 font-bold font-mono tabular">{lowStockCount}</strong></span>
+          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Alerte</span>
+            <strong className={`font-mono text-sm font-extrabold tabular ${lowStockCount > 0 ? 'text-amber-600' : 'text-stone-950'}`}>{lowStockCount}</strong>
           </div>
-          <div className="h-3 w-px bg-stone-200" />
           <button
             type="button"
             onClick={pendingCount > 0 && isOnline ? onSyncNow : undefined}
-            className={`flex items-center gap-1.5 ${connectionColor} ${pendingCount > 0 && isOnline ? 'cursor-pointer' : 'cursor-default'}`}
+            className={`rounded-2xl border px-2 py-2 text-center shadow-sm transition tap-active ${connectionColor} ${pendingCount > 0 && isOnline ? 'cursor-pointer' : 'cursor-default'}`}
             title={connectionLabel}
           >
-            {!isOnline ? (
-              <CloudOff className="h-3 w-3" />
-            ) : (
-              <span className={`w-1.5 h-1.5 rounded-full ${connectionDot}`} />
-            )}
-            <span className={connectionColor}>{connectionLabel}</span>
+            <span className="flex items-center justify-center gap-1 truncate">
+              {!isOnline ? (
+                <CloudOff className="h-3 w-3" />
+              ) : (
+                <span className={`h-1.5 w-1.5 rounded-full ${connectionDot}`} />
+              )}
+              <span className="truncate">{connectionLabel}</span>
+            </span>
           </button>
         </div>
       </div>
