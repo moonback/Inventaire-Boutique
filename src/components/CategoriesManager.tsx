@@ -235,7 +235,7 @@ export function CategoriesManager({
       <AnimatePresence>
         {isCategoryModalOpen && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/45 p-3 backdrop-blur-sm sm:items-center"
+            className="fixed inset-0 z-50 flex items-stretch justify-center bg-stone-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -248,7 +248,7 @@ export function CategoriesManager({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-              className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl shadow-stone-950/20"
+              className="flex h-full w-full max-w-lg flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl shadow-stone-950/20 sm:h-auto sm:max-h-[92vh] sm:rounded-3xl sm:border sm:border-white/70"
             >
               <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-500 px-5 py-5 text-white">
                 <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/15" />
@@ -277,7 +277,7 @@ export function CategoriesManager({
                 </div>
               </div>
 
-              <div className="space-y-5 p-5">
+              <div className="flex-1 space-y-5 overflow-y-auto p-5">
                 <div className="grid grid-cols-[5.5rem_1fr] gap-3">
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-stone-500">Icône</label>
@@ -329,7 +329,7 @@ export function CategoriesManager({
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
+              <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeCategoryModal}
@@ -356,7 +356,7 @@ export function CategoriesManager({
       <AnimatePresence>
         {categoryToDelete && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/45 p-3 backdrop-blur-sm sm:items-center"
+            className="fixed inset-0 z-50 flex items-stretch justify-center bg-stone-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -368,9 +368,9 @@ export function CategoriesManager({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-              className="w-full max-w-md overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl shadow-stone-950/20"
+              className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl shadow-stone-950/20 sm:h-auto sm:max-h-[92vh] sm:rounded-3xl sm:border sm:border-white/70"
             >
-              <div className="p-5">
+              <div className="flex-1 overflow-y-auto p-5">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-50 text-xl ring-1 ring-rose-100">
@@ -402,7 +402,7 @@ export function CategoriesManager({
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
+              <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-stone-100 bg-stone-50 px-5 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setCategoryToDelete(null)}
