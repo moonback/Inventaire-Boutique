@@ -1,6 +1,8 @@
 import { Loader2, ScanLine, Zap } from "lucide-react";
 import { ManualInput } from "./ManualInput";
+import { CameraBarcodeScanner } from "./CameraBarcodeScanner";
 import { StockScanModeToggle, StockScanMode } from "./StockScanModeToggle";
+import { ScannerInputMode, ScannerInputModeToggle } from "./ScannerInputModeToggle";
 
 interface AutomaticScanPanelProps {
   enabled: boolean;
@@ -11,6 +13,8 @@ interface AutomaticScanPanelProps {
   syncError: string | null;
   onEnabledChange: (enabled: boolean) => void;
   onModeChange: (mode: StockScanMode) => void;
+  scannerInputMode: ScannerInputMode;
+  onScannerInputModeChange: (mode: ScannerInputMode) => void;
   onScan: (barcode: string) => void;
 }
 
@@ -23,6 +27,8 @@ export function AutomaticScanPanel({
   syncError,
   onEnabledChange,
   onModeChange,
+  scannerInputMode,
+  onScannerInputModeChange,
   onScan,
 }: AutomaticScanPanelProps) {
   return (
@@ -83,6 +89,12 @@ export function AutomaticScanPanel({
         onModeChange={onModeChange}
       />
 
+      <ScannerInputModeToggle
+        mode={scannerInputMode}
+        onModeChange={onScannerInputModeChange}
+        disabled={!!loadingBarcode}
+      />
+
       <div className="relative">
         {loadingBarcode && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white/95 text-stone-700 backdrop-blur-xs">
@@ -92,7 +104,15 @@ export function AutomaticScanPanel({
             </span>
           </div>
         )}
-        <ManualInput onScan={onScan} isActive={enabled && !loadingBarcode} />
+        {scannerInputMode === "hardware" ? (
+          <ManualInput onScan={onScan} isActive={enabled && !loadingBarcode} />
+        ) : (
+          <CameraBarcodeScanner
+            enabled={enabled && !loadingBarcode}
+            isBusy={!!loadingBarcode}
+            onScan={onScan}
+          />
+        )}
       </div>
 
       {!enabled && (
