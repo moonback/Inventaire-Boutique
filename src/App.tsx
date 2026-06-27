@@ -91,7 +91,9 @@ export default function App() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
   const [scannerInputMode, setScannerInputMode] = useState<ScannerInputMode>("hardware");
-  const [isCompactView, setIsCompactView] = useState(true);
+  const [isCompactView, setIsCompactView] = useState(false
+  
+  );
 
   const showToast = useCallback((text: string) => {
     const id = Date.now();
