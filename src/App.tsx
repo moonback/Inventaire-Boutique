@@ -43,7 +43,9 @@ import {
   Tags,
   Zap,
   TrendingUp,
+  Check,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
 import { useOfflineSync } from "./hooks/useOfflineSync";
@@ -88,6 +90,7 @@ export default function App() {
     "recent" | "name" | "quantityAsc" | "quantityDesc"
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
   const [scannerInputMode, setScannerInputMode] = useState<ScannerInputMode>("hardware");
@@ -697,6 +700,21 @@ export default function App() {
     return Array.from(cats).sort();
   }, [inventory]);
 
+  const categoryOptions = useMemo(() => {
+    return categories.map((cat) => {
+      const count = inventory.filter((item) => item.category?.trim() === cat).length;
+      const categoryRecord = dbCategories.find(
+        (entry) => entry.name.toLowerCase() === cat.toLowerCase(),
+      );
+
+      return {
+        name: cat,
+        count,
+        label: categoryRecord?.icon ? `${categoryRecord.icon} ${cat}` : cat,
+      };
+    });
+  }, [categories, dbCategories, inventory]);
+
   const filteredInventory = useMemo(() => {
     let result = [...inventory];
 
@@ -744,6 +762,7 @@ export default function App() {
     setSelectedCategory(null);
     setStockFilter("all");
     setSortBy("recent");
+    setShowCategoryModal(false);
   };
 
   if (isSessionLoading) {
@@ -1096,9 +1115,33 @@ export default function App() {
                 />
               </div>
 
+              {categories.length > 0 && (
+                <button
+                  onClick={() => setShowCategoryModal(true)}
+                  className="flex min-h-11 items-center justify-between rounded-2xl border border-stone-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-stone-300 sm:hidden"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+                      <Tags className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                        Catégorie
+                      </p>
+                      <p className="truncate text-sm font-semibold text-stone-900">
+                        {selectedCategory ?? "Toutes les catégories"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-stone-100 px-2 py-1 text-[10px] font-bold text-stone-500">
+                    {selectedCategory ? "1 active" : `${categories.length} choix`}
+                  </span>
+                </button>
+              )}
+
               {/* Dynamic scrollable Category Filter Pills */}
               {categories.length > 0 && (
-                <div className="-mx-3 flex gap-2 overflow-x-auto no-scrollbar px-3 pb-1 sm:-mx-4 sm:px-4">
+                <div className="hidden -mx-3 gap-2 overflow-x-auto no-scrollbar px-3 pb-1 sm:flex sm:-mx-4 sm:px-4">
                   <button
                     onClick={() => setSelectedCategory(null)}
                     className={`min-h-9 shrink-0 rounded-full border px-3 py-2 text-[10px] font-bold transition tap-active select-none ${
@@ -1109,21 +1152,22 @@ export default function App() {
                   >
                     Tout ({inventory.length})
                   </button>
-                  {categories.map((cat) => {
-                    const count = inventory.filter((i) => i.category?.trim() === cat).length;
-                    const catObj = dbCategories.find(c => c.name.toLowerCase() === cat.toLowerCase());
-                    const displayLabel = catObj?.icon ? `${catObj.icon} ${cat}` : cat;
+                  {categoryOptions.map((category) => {
                     return (
                       <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                        key={category.name}
+                        onClick={() =>
+                          setSelectedCategory(
+                            selectedCategory === category.name ? null : category.name,
+                          )
+                        }
                         className={`min-h-9 shrink-0 rounded-full border px-3 py-2 text-[10px] font-bold transition tap-active select-none ${
-                          selectedCategory === cat
+                          selectedCategory === category.name
                             ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-600/20"
                             : "bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300"
                         }`}
                       >
-                        {displayLabel} ({count})
+                        {category.label} ({category.count})
                       </button>
                     );
                   })}
@@ -1254,6 +1298,122 @@ export default function App() {
           </button>
         </div>
       </nav>
+
+      {/* Category Selection Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-stone-900/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            className="w-full sm:max-w-md bg-white border-t sm:border border-stone-200 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl shadow-stone-900/25 overflow-hidden pb-safe max-h-[92vh] overflow-y-auto no-scrollbar"
+          >
+            {/* Header Drag Indicator for mobile */}
+            <div className="flex justify-center py-3 sm:hidden sticky top-0 bg-white z-10">
+              <div className="w-12 h-1.5 bg-stone-300 rounded-full" />
+            </div>
+
+            <div className="p-6">
+              <div className="absolute top-4 right-4 hidden sm:block">
+                <button
+                  onClick={() => setShowCategoryModal(false)}
+                  className="p-2 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/25">
+                  <Tags className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-stone-900">
+                    Filtrer par catégorie
+                  </h3>
+                  <p className="text-xs text-stone-500 font-medium mt-0.5">
+                    Sélectionnez une catégorie pour affiner votre inventaire
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                {/* All Categories Option */}
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setShowCategoryModal(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition ${
+                    selectedCategory === null
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-white border-stone-200 text-stone-900 hover:border-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      selectedCategory === null ? 'bg-white/20' : 'bg-stone-50 border border-stone-200'
+                    }`}>
+                      <Package className={`w-4 h-4 ${selectedCategory === null ? 'text-white' : 'text-stone-400'}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Toutes les catégories</p>
+                      <p className="text-[10px] font-mono tabular opacity-80">
+                        {inventory.length} articles
+                      </p>
+                    </div>
+                  </div>
+                  {selectedCategory === null && <Check className="w-5 h-5" />}
+                </button>
+
+                {/* Individual Category Options */}
+                {categoryOptions.map((category) => (
+                  <button
+                    key={category.name}
+                    onClick={() => {
+                      setSelectedCategory(
+                        selectedCategory === category.name ? null : category.name,
+                      );
+                      setShowCategoryModal(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition ${
+                      selectedCategory === category.name
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : 'bg-white border-stone-200 text-stone-900 hover:border-indigo-300 hover:bg-indigo-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${
+                        selectedCategory === category.name ? 'bg-white/20' : 'bg-stone-50 border border-stone-200'
+                      }`}>
+                        {category.label.split(' ')[0] || '📦'}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold">
+                          {category.label.replace(/^[^\s]+\s/, '')}
+                        </p>
+                        <p className="text-[10px] font-mono tabular opacity-80">
+                          {category.count} article{category.count > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedCategory === category.name && <Check className="w-5 h-5" />}
+                  </button>
+                ))}
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="w-full py-4 text-sm font-semibold text-stone-500 bg-transparent border border-stone-200 hover:bg-stone-50 hover:text-stone-800 active:scale-95 rounded-2xl transition"
+              >
+                Annuler
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Modals & toast */}
       {actionModal?.type === "manual" && (
