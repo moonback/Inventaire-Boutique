@@ -23,6 +23,7 @@ export function ExportModal({
 }: ExportModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [exportType, setExportType] = useState<"csv" | "pdf" | null>(null);
+  const [showPdfProgress, setShowPdfProgress] = useState(false);
   const [progress, setProgress] = useState<ExportProgress>({
     current: 0,
     total: items.length,
@@ -111,6 +112,7 @@ export function ExportModal({
   const generatePDF = async () => {
     if (items.length === 0) return;
 
+    setShowPdfProgress(true);
     setIsGenerating(true);
     setExportType("pdf");
     setProgress({
@@ -482,6 +484,7 @@ export function ExportModal({
     } finally {
       setIsGenerating(false);
       setExportType(null);
+      setShowPdfProgress(false);
       setProgress({
         current: 0,
         total: items.length,
@@ -524,30 +527,32 @@ export function ExportModal({
             </div>
           </div>
 
-          <div className="mb-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">Progression</p>
-                <p className="mt-1 text-sm font-bold text-stone-900">{progress.label}</p>
+          {showPdfProgress && (
+            <div className="mb-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">Progression PDF</p>
+                  <p className="mt-1 text-sm font-bold text-stone-900">{progress.label}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-extrabold tabular-nums text-emerald-700">
+                    {progress.current}/{progress.total}
+                  </p>
+                  <p className="text-[11px] font-medium text-stone-500">produits</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-extrabold tabular-nums text-emerald-700">
-                  {progress.current}/{progress.total}
-                </p>
-                <p className="text-[11px] font-medium text-stone-500">produits</p>
+              <div className="h-3 overflow-hidden rounded-full bg-stone-200">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-stone-500">
+                <span>{isGenerating ? "Export PDF en cours..." : "En attente"}</span>
+                <span>{progressPercent}%</span>
               </div>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-stone-200">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-stone-500">
-              <span>{isGenerating ? "Export en cours..." : "En attente"}</span>
-              <span>{progressPercent}%</span>
-            </div>
-          </div>
+          )}
 
           <div className="space-y-3 mb-6">
             <button
