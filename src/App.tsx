@@ -23,6 +23,7 @@ import {
 } from "./lib/inventorySync";
 import { fetchCategories } from "./lib/supabaseCategories";
 import { CategoriesManager } from "./components/CategoriesManager";
+import { ExportPDFButton } from "./components/ExportPDFButton";
 import { suggestCategory } from "./lib/autoCategorization";
 import { getSession, signOut, UserSession } from "./lib/supabaseAuth";
 import { getProductData } from "./api";
@@ -41,6 +42,7 @@ import {
   Plus,
   Tags,
   Zap,
+  TrendingUp,
 } from "lucide-react";
 import { useHardwareScanner } from "./hooks/useHardwareScanner";
 import { useSupabaseRealtime } from "./hooks/useSupabaseRealtime";
@@ -972,64 +974,112 @@ export default function App() {
           /* STOCK VIEW TAB */
           <section className="glass-card mobile-card space-y-4">
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    Inventaire
-                  </span>
-                  <h2 className="mt-2 text-base font-bold tracking-tight text-stone-900">
-                    Articles en Stock
-                  </h2>
-                </div>
+              {/* Header Card Modern */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 p-4 shadow-xl shadow-emerald-500/20 sm:p-6">
+                {/* Decorative circles */}
+                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                
+                <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg sm:h-14 sm:w-14">
+                      <Package className="h-5 w-5 text-white sm:h-7 sm:w-7" />
+                    </div>
+                    <div className="pt-0.5 sm:pt-1">
+                      <h2 className="text-xl font-bold text-white tracking-tight sm:text-2xl">
+                        Inventaire
+                      </h2>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm sm:px-2.5 sm:text-xs">
+                          {filteredInventory.length} article{filteredInventory.length > 1 ? 's' : ''}
+                        </span>
+                        <span className="text-[11px] text-white/70 sm:text-xs">
+                          en stock
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  {hasActiveFilters && (
-                    <button
-                      onClick={resetFilters}
-                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1.5 rounded-xl tap-active transition"
-                    >
-                      <X className="w-3 h-3" />
-                      Effacer ({filteredInventory.length} restants)
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setIsCompactView(!isCompactView)}
-                    className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
-                      isCompactView
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-stone-200 bg-white text-stone-500 hover:text-stone-900 hover:border-stone-300"
-                    }`}
-                    title={isCompactView ? "Affichage détaillé" : "Affichage compact"}
-                  >
-                    {isCompactView ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border transition tap-active ${
-                      showFilters
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-stone-200 bg-white text-stone-500 hover:text-stone-900 hover:border-stone-300"
-                    }`}
-                    title="Filtres"
-                  >
-                    <Filter className="h-4 w-4" />
-                  </button>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
+                    {hasActiveFilters && (
+                      <button
+                        onClick={resetFilters}
+                        className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/20 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/30"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Effacer
+                      </button>
+                    )}
+                    
+                    <div className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 p-1 backdrop-blur-sm sm:justify-start sm:p-1.5">
+                      <button
+                        onClick={() => setIsCompactView(!isCompactView)}
+                        className={`grid h-8 w-8 place-items-center rounded-lg transition ${
+                          isCompactView
+                            ? "bg-white text-emerald-600 shadow-sm"
+                            : "text-white/70 hover:bg-white/10"
+                        }`}
+                        title={isCompactView ? "Affichage détaillé" : "Affichage compact"}
+                      >
+                        {isCompactView ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`grid h-8 w-8 place-items-center rounded-lg transition ${
+                          showFilters
+                            ? "bg-white text-emerald-600 shadow-sm"
+                            : "text-white/70 hover:bg-white/10"
+                        }`}
+                        title="Filtres"
+                      >
+                        <Filter className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="hidden h-6 w-px bg-white/20 sm:block" />
+
+                    <ExportPDFButton
+                      className="w-full sm:w-auto"
+                      items={filteredInventory}
+                      categories={dbCategories}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Financial Stats Summary */}
-              <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-stone-200 bg-stone-50 p-2 sm:gap-2 sm:p-3">
-                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
-                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Achat Total</span>
-                  <span className="font-mono tabular text-xs font-bold text-stone-700">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-50 to-stone-100 p-3 border border-stone-200/60 transition-all duration-300 hover:shadow-lg hover:border-stone-300">
+                  <div className="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-stone-200/50 blur-2xl transition-all group-hover:scale-150" />
+                  <div className="relative">
+                    <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-stone-200/70">
+                      <span className="text-xs font-bold text-stone-600">€</span>
+                    </div>
+                    <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Achat Total</span>
+                    <span className="mt-0.5 block font-mono text-sm font-bold text-stone-700">{financialStats.totalPurchaseVal.toFixed(2)} €</span>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
-                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">CA Potentiel</span>
-                  <span className="font-mono tabular text-xs font-bold text-indigo-600">{financialStats.totalSalesVal.toFixed(2)} €</span>
+
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-3 border border-indigo-200/60 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:border-indigo-300">
+                  <div className="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-indigo-300/30 blur-2xl transition-all group-hover:scale-150" />
+                  <div className="relative">
+                    <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-200/60">
+                      <TrendingUp className="h-3.5 w-3.5 text-indigo-600" />
+                    </div>
+                    <span className="block text-[9px] font-bold text-indigo-400/80 uppercase tracking-wider">CA Potentiel</span>
+                    <span className="mt-0.5 block font-mono text-sm font-bold text-indigo-700">{financialStats.totalSalesVal.toFixed(2)} €</span>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-white/70 px-1.5 py-2 text-center">
-                  <span className="block text-[9px] font-bold text-stone-400 uppercase tracking-wider">Marge Brute</span>
-                  <span className="font-mono tabular text-xs font-bold text-emerald-600">{financialStats.potentialMargin.toFixed(2)} €</span>
+
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3 border border-emerald-200/60 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 hover:border-emerald-300">
+                  <div className="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-emerald-300/30 blur-2xl transition-all group-hover:scale-150" />
+                  <div className="relative">
+                    <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-200/60">
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                    </div>
+                    <span className="block text-[9px] font-bold text-emerald-500/80 uppercase tracking-wider">Marge Brute</span>
+                    <span className="mt-0.5 block font-mono text-sm font-bold text-emerald-700">{financialStats.potentialMargin.toFixed(2)} €</span>
+                  </div>
                 </div>
               </div>
 
