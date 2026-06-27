@@ -6,6 +6,7 @@ type CategoryOption = {
   name: string;
   count: number;
   label: string;
+  icon?: string;
 };
 
 type CategoryFilterModalProps = {
@@ -73,9 +74,15 @@ export function CategoryFilterModal({
                 <div key={category.name}>
                   <CategoryButton
                     active={isActive}
-                    title={category.label.replace(/^[^\s]+\s/, "")}
+                    title={category.name}
                     subtitle={`${category.count} article${category.count > 1 ? "s" : ""}`}
-                    icon={category.label.split(" ")[0] || "📦"}
+                    icon={
+                      category.icon ? (
+                        <span className="text-base leading-none">{category.icon}</span>
+                      ) : (
+                        <Package className={`h-4 w-4 ${isActive ? "text-white" : "text-stone-400"}`} />
+                      )
+                    }
                     onClick={() => selectAndClose(isActive ? null : category.name)}
                   />
                 </div>

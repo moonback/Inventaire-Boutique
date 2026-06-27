@@ -670,31 +670,42 @@ export default function App() {
     };
   }, [inventory]);
 
-  // Extract list of unique categories dynamically
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    inventory.forEach((item) => {
-      if (item.category && item.category.trim()) {
-        cats.add(item.category.trim());
-      }
-    });
-    return Array.from(cats).sort();
-  }, [inventory]);
-
   const categoryOptions = useMemo(() => {
-    return categories.map((cat) => {
-      const count = inventory.filter((item) => item.category?.trim() === cat).length;
-      const categoryRecord = dbCategories.find(
-        (entry) => entry.name.toLowerCase() === cat.toLowerCase(),
-      );
+    const inventoryCounts = new Map<string, number>();
+    inventory.forEach((item) => {
+      const normalizedCategory = item.category?.trim().toLowerCase();
+      if (!normalizedCategory) return;
 
-      return {
-        name: cat,
-        count,
-        label: categoryRecord?.icon ? `${categoryRecord.icon} ${cat}` : cat,
-      };
+      inventoryCounts.set(
+        normalizedCategory,
+        (inventoryCounts.get(normalizedCategory) ?? 0) + 1,
+      );
     });
-  }, [categories, dbCategories, inventory]);
+
+    return dbCategories
+      .map((categoryRecord) => {
+        const cat = categoryRecord.name.trim();
+        const count = inventoryCounts.get(cat.toLowerCase()) ?? 0;
+
+        return {
+          name: cat,
+          count,
+          icon: categoryRecord.icon,
+          label: categoryRecord.icon ? `${categoryRecord.icon} ${cat}` : cat,
+        };
+      })
+      .filter((category) => category.count > 0);
+  }, [dbCategories, inventory]);
+
+  const categories = useMemo(() => {
+    return categoryOptions.map((category) => category.name);
+  }, [categoryOptions]);
+
+  useEffect(() => {
+    if (selectedCategory && !categories.includes(selectedCategory)) {
+      setSelectedCategory(null);
+    }
+  }, [categories, selectedCategory]);
 
   const filteredInventory = useMemo(() => {
     let result = [...inventory];
