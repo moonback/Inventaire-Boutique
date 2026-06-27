@@ -156,7 +156,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
 
           {/* Toggle link */}
           <div className="mt-5 pt-4 border-t border-stone-200 text-center">
-            <button
+            {/* <button
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError(null);
@@ -168,7 +168,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               {isLogin
                 ? "Nouveau ici ? Créez un compte"
                 : "Vous avez déjà un compte ? Connectez-vous"}
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

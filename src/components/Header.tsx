@@ -1,4 +1,4 @@
-import { Store, Download, LogOut, CloudOff, CloudUpload, RefreshCw } from "lucide-react";
+import { Store, Download, LogOut, CloudOff, CloudUpload, RefreshCw, Check } from "lucide-react";
 
 interface HeaderProps {
   email: string;
@@ -27,11 +27,13 @@ export function Header({
   onLogout,
   onSyncNow,
 }: HeaderProps) {
+  const canSync = isOnline && pendingCount > 0 && !!onSyncNow;
+
   const connectionLabel = !isOnline
     ? "Hors-ligne"
     : pendingCount > 0
-      ? `${pendingCount} en attente`
-      : "En ligne";
+      ? `${pendingCount} opération${pendingCount > 1 ? "s" : ""} en attente`
+      : "Synchronisé";
 
   const connectionColor = !isOnline
     ? "text-rose-600 bg-rose-50 border-rose-200"
@@ -47,30 +49,30 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 glass-panel border-b pt-safe">
-      <div className="mx-auto w-full max-w-2xl px-3 pb-2.5 pt-2.5 sm:px-4 sm:pt-3.5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
-              <Store className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="flex items-center gap-1.5 truncate text-lg font-extrabold tracking-tight text-stone-950">
-                Boutique
-                <span className={`flex h-2 w-2 rounded-full ${connectionDot}`} />
-              </h1>
-              <p className="max-w-[46vw] truncate text-[10px] font-semibold text-stone-500 sm:max-w-none">
-                {email}
-              </p>
-            </div>
+      <div className="mx-auto w-full max-w-2xl px-4 pb-3 pt-3">
+        {/* Identity row */}
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/25">
+            <Store className="h-5 w-5" />
           </div>
 
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-base font-extrabold tracking-tight text-stone-950">
+              Le Salengro
+            </h1>
+            <p className="truncate text-[11px] font-medium text-stone-500">
+              {email}
+            </p>
+          </div>
+
+          {/* Action icons: always reachable with the thumb, never wrap, never crowd the title */}
           <div className="flex flex-shrink-0 items-center gap-1.5">
-            {pendingCount > 0 && isOnline && onSyncNow && (
+            {canSync && (
               <button
                 onClick={onSyncNow}
                 disabled={isSyncing}
-                className="touch-target grid place-items-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-600 transition tap-active disabled:opacity-50"
-                title="Synchroniser les modifications en attente"
+                aria-label={isSyncing ? "Synchronisation en cours" : "Synchroniser les modifications en attente"}
+                className="touch-target grid h-10 w-10 place-items-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-600 transition tap-active disabled:opacity-50"
               >
                 {isSyncing ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
@@ -82,50 +84,69 @@ export function Header({
             {showExport && (
               <button
                 onClick={onExport}
-                className="touch-target grid place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-sm transition tap-active hover:border-stone-300 hover:text-stone-900"
-                title="Exporter l'inventaire en CSV"
+                aria-label="Exporter l'inventaire en CSV"
+                className="touch-target grid h-10 w-10 place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-sm transition tap-active hover:border-stone-300 hover:text-stone-900"
               >
                 <Download className="h-4 w-4" />
               </button>
             )}
             <button
               onClick={onLogout}
-              className="touch-target grid place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition tap-active hover:bg-rose-100"
-              title="Se déconnecter"
+              aria-label="Se déconnecter"
+              className="touch-target grid h-10 w-10 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition tap-active hover:bg-rose-100"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5 text-[9px] font-semibold text-stone-500 sm:gap-2 sm:text-[10px]">
-          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
-            <span className="block uppercase tracking-wider text-stone-400">Réf.</span>
-            <strong className="font-mono text-sm font-extrabold tabular text-stone-950">{inventoryLength}</strong>
-          </div>
-          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
-            <span className="block uppercase tracking-wider text-stone-400">Total</span>
-            <strong className="font-mono text-sm font-extrabold tabular text-emerald-700">{totalItems}</strong>
-          </div>
-          <div className="rounded-2xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
-            <span className="block uppercase tracking-wider text-stone-400">Alerte</span>
-            <strong className={`font-mono text-sm font-extrabold tabular ${lowStockCount > 0 ? 'text-amber-600' : 'text-stone-950'}`}>{lowStockCount}</strong>
-          </div>
-          <button
-            type="button"
-            onClick={pendingCount > 0 && isOnline ? onSyncNow : undefined}
-            className={`rounded-2xl border px-2 py-2 text-center shadow-sm transition tap-active ${connectionColor} ${pendingCount > 0 && isOnline ? 'cursor-pointer' : 'cursor-default'}`}
-            title={connectionLabel}
-          >
-            <span className="flex items-center justify-center gap-1 truncate">
-              {!isOnline ? (
-                <CloudOff className="h-3 w-3" />
-              ) : (
-                <span className={`h-1.5 w-1.5 rounded-full ${connectionDot}`} />
-              )}
-              <span className="truncate">{connectionLabel}</span>
+        {/* Single connection banner — tappable only when there's something to do */}
+        <button
+          type="button"
+          onClick={canSync ? onSyncNow : undefined}
+          disabled={!canSync}
+          aria-label={`Statut réseau : ${connectionLabel}${canSync ? ", touchez pour synchroniser" : ""}`}
+          className={`mt-2.5 flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition ${connectionColor} ${canSync ? "tap-active cursor-pointer" : "cursor-default"}`}
+        >
+          {!isOnline ? (
+            <CloudOff className="h-3.5 w-3.5 flex-shrink-0" />
+          ) : pendingCount === 0 ? (
+            <Check className="h-3.5 w-3.5 flex-shrink-0" />
+          ) : (
+            <span className={`h-2 w-2 flex-shrink-0 rounded-full ${connectionDot}`} />
+          )}
+          <span className="min-w-0 flex-1 truncate">{connectionLabel}</span>
+          {canSync && (
+            <span className="flex-shrink-0 text-[11px] font-bold underline-offset-2 opacity-80">
+              {isSyncing ? "..." : "Synchroniser"}
             </span>
-          </button>
+          )}
+        </button>
+
+        {/* Stats row */}
+        <div className="mt-2.5 grid grid-cols-3 gap-2 text-[10px] font-semibold text-stone-500">
+          <div className="rounded-xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Réf.</span>
+            <strong className="font-mono text-base font-extrabold tabular-nums text-stone-950">
+              {inventoryLength}
+            </strong>
+          </div>
+          <div className="rounded-xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Total</span>
+            <strong className="font-mono text-base font-extrabold tabular-nums text-emerald-700">
+              {totalItems}
+            </strong>
+          </div>
+          <div className="rounded-xl border border-stone-200/80 bg-white/70 px-2 py-2 text-center shadow-sm">
+            <span className="block uppercase tracking-wider text-stone-400">Alerte</span>
+            <strong
+              className={`font-mono text-base font-extrabold tabular-nums ${
+                lowStockCount > 0 ? "text-amber-600" : "text-stone-950"
+              }`}
+            >
+              {lowStockCount}
+            </strong>
+          </div>
         </div>
       </div>
     </header>

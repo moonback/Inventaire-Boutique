@@ -85,6 +85,7 @@ interface InventoryGridProps {
   items: InventoryItem[];
   categories?: CategoryItem[];
   isCompactView?: boolean;
+  searchTerm?: string;
   onUpdateQuantity: (barcode: string, delta: number) => void;
   onRemove: (barcode: string) => void;
   onEditQuantity: (item: InventoryItem) => void;
@@ -95,11 +96,42 @@ export function InventoryGrid({
   items,
   categories = [],
   isCompactView = false,
+  searchTerm = "",
   onUpdateQuantity,
   onRemove,
   onEditQuantity,
   onEditProduct,
 }: InventoryGridProps) {
+  const searchTokens = useMemo(
+    () =>
+      searchTerm
+        .trim()
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean),
+    [searchTerm],
+  );
+
+  const renderHighlightedText = (text: string, highlightClassName: string) => {
+    if (!text || searchTokens.length === 0) {
+      return text;
+    }
+
+    const escapedTokens = searchTokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const regex = new RegExp(`(${escapedTokens.join("|")})`, "gi");
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      escapedTokens.some((token) => new RegExp(`^${token}$`, "i").test(part)) ? (
+        <mark key={`${part}-${index}`} className={highlightClassName}>
+          {part}
+        </mark>
+      ) : (
+        <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
+      ),
+    );
+  };
+
   const renderNewBadge = (item: InventoryItem) => {
     if (!isRecentTimestamp(item.lastUpdated)) return null;
 
@@ -200,12 +232,13 @@ export function InventoryGrid({
                             className="line-clamp-1 text-xs font-bold text-stone-900 group-hover:text-indigo-600 transition-colors"
                             title={item.name}
                           >
-                            {item.name}
+                            {renderHighlightedText(item.name, "rounded bg-amber-100 px-0.5 text-stone-950")}
                           </h4>
                           {renderNewBadge(item)}
                           {item.brand && (
                             <span className="text-[10px] text-stone-500 font-medium truncate max-w-[80px]">
-                              • {item.brand}
+                              •{" "}
+                              {renderHighlightedText(item.brand, "rounded bg-amber-100 px-0.5 text-stone-700")}
                             </span>
                           )}
                           {item.quantity <= 5 && (
@@ -303,7 +336,7 @@ export function InventoryGrid({
                               className="mt-0.5 line-clamp-1 text-sm font-bold text-stone-900 leading-tight group-hover:text-indigo-600 transition-colors"
                               title={item.name}
                             >
-                              {item.name}
+                              {renderHighlightedText(item.name, "rounded bg-amber-100 px-0.5 text-stone-950")}
                             </h4>
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -319,7 +352,7 @@ export function InventoryGrid({
                         </div>
                         {item.brand && (
                           <p className="mt-1 truncate text-xs text-stone-500 font-medium">
-                            {item.brand}
+                            {renderHighlightedText(item.brand, "rounded bg-amber-100 px-0.5 text-stone-700")}
                           </p>
                         )}
                         {(item.purchasePrice !== undefined || item.salesPrice !== undefined) && (

@@ -52,7 +52,7 @@ export function ScanTab({
             Ajouter un article
           </h2>
         </div>
-        <SyncBadge isOnline={isOnline} pendingCount={pendingCount} syncError={syncError} />
+        {/* <SyncBadge isOnline={isOnline} pendingCount={pendingCount} syncError={syncError} /> */}
       </div>
 
       <ScannerInputModeToggle
@@ -106,29 +106,29 @@ type SyncBadgeProps = {
   syncError: string | null;
 };
 
-function SyncBadge({ isOnline, pendingCount, syncError }: SyncBadgeProps) {
-  const stateClasses = !isOnline
-    ? "bg-rose-50 border border-rose-200 text-rose-600"
-    : pendingCount > 0
-      ? "bg-amber-50 border border-amber-200 text-amber-700"
-      : syncError
-        ? "bg-rose-50 border border-rose-200 text-rose-600"
-        : "bg-emerald-50 border border-emerald-200 text-emerald-700";
-  const dotClasses = !isOnline
-    ? "bg-rose-500"
-    : pendingCount > 0
-      ? "bg-amber-500 animate-pulse"
-      : syncError
-        ? "bg-rose-500"
-        : "bg-emerald-500";
+// function SyncBadge({ isOnline, pendingCount, syncError }: SyncBadgeProps) {
+//   const stateClasses = !isOnline
+//     ? "bg-rose-50 border border-rose-200 text-rose-600"
+//     : pendingCount > 0
+//       ? "bg-amber-50 border border-amber-200 text-amber-700"
+//       : syncError
+//         ? "bg-rose-50 border border-rose-200 text-rose-600"
+//         : "bg-emerald-50 border border-emerald-200 text-emerald-700";
+//   const dotClasses = !isOnline
+//     ? "bg-rose-500"
+//     : pendingCount > 0
+//       ? "bg-amber-500 animate-pulse"
+//       : syncError
+//         ? "bg-rose-500"
+//         : "bg-emerald-500";
 
-  return (
-    <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${stateClasses}`}>
-      <span className={`w-1 h-1 rounded-full ${dotClasses}`} />
-      {!isOnline ? "Hors-ligne" : pendingCount > 0 ? `${pendingCount} en attente` : syncError ? "Supabase Off" : "Synchro On"}
-    </div>
-  );
-}
+//   return (
+//     <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${stateClasses}`}>
+//       <span className={`w-1 h-1 rounded-full ${dotClasses}`} />
+//       {!isOnline ? "Hors-ligne" : pendingCount > 0 ? `${pendingCount} en attente` : syncError ? "Supabase Off" : "Synchro On"}
+//     </div>
+//   );
+// }
 
 type RecentScanItemProps = {
   item: InventoryItem;

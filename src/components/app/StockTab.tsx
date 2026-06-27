@@ -142,6 +142,7 @@ export function StockTab({
           items={filteredInventory}
           categories={dbCategories}
           isCompactView={isCompactView}
+          searchTerm={searchTerm}
           onUpdateQuantity={onUpdateQuantity}
           onRemove={onRemove}
           onEditQuantity={onEditQuantity}
