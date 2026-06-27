@@ -1,6 +1,5 @@
 import type React from "react";
 import { Loader2, Search, Filter, Package, X, List, LayoutGrid, Tags, TrendingUp, SlidersHorizontal } from "lucide-react";
-import { ExportPDFButton } from "../ExportPDFButton";
 import { InventoryGrid } from "../InventoryGrid";
 import { CategoryItem, InventoryItem } from "../../types";
 
@@ -84,8 +83,6 @@ export function StockTab({
           hasActiveFilters={hasActiveFilters}
           isCompactView={isCompactView}
           showFilters={showFilters}
-          items={filteredInventory}
-          categories={dbCategories}
           onResetFilters={onResetFilters}
           onCompactViewChange={onCompactViewChange}
           onShowFiltersChange={onShowFiltersChange}
@@ -158,14 +155,12 @@ type StockHeroProps = {
   hasActiveFilters: boolean;
   isCompactView: boolean;
   showFilters: boolean;
-  items: InventoryItem[];
-  categories: CategoryItem[];
   onResetFilters: () => void;
   onCompactViewChange: (isCompact: boolean) => void;
   onShowFiltersChange: (show: boolean) => void;
 };
 
-function StockHero({ filteredCount, hasActiveFilters, isCompactView, showFilters, items, categories, onResetFilters, onCompactViewChange, onShowFiltersChange }: StockHeroProps) {
+function StockHero({ filteredCount, hasActiveFilters, isCompactView, showFilters, onResetFilters, onCompactViewChange, onShowFiltersChange }: StockHeroProps) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 p-4 shadow-xl shadow-emerald-500/20 sm:p-6">
       <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
@@ -203,8 +198,6 @@ function StockHero({ filteredCount, hasActiveFilters, isCompactView, showFilters
               <Filter className="h-4 w-4" />
             </button>
           </div>
-
-          <ExportPDFButton className="col-span-2 w-full sm:col-span-1 sm:w-auto" items={items} categories={categories} />
         </div>
       </div>
     </div>

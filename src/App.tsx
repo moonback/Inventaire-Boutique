@@ -8,6 +8,7 @@ import { AutomaticScanPanel } from "./components/AutomaticScanPanel";
 import { ScannerInputMode } from "./components/ScannerInputModeToggle";
 import { AuthScreen } from "./components/AuthScreen";
 import { Toast } from "./components/Toast";
+import { ExportModal } from "./components/ExportModal";
 import { InventoryItem, ProductLookupData, CategoryItem } from "./types";
 import {
   isSupabaseConfigured,
@@ -74,6 +75,7 @@ export default function App() {
   >("recent");
   const [showFilters, setShowFilters] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [stockScanMode, setStockScanMode] = useState<StockScanMode>("add");
   const [scannerInputMode, setScannerInputMode] = useState<ScannerInputMode>("hardware");
@@ -783,7 +785,7 @@ export default function App() {
         isOnline={isOnline}
         pendingCount={pendingCount}
         isSyncing={isSyncing}
-        onExport={handleExport}
+        onExport={() => setShowExportModal(true)}
         onLogout={handleLogout}
         onSyncNow={() => void flushQueue()}
       />
@@ -891,6 +893,14 @@ export default function App() {
           categoryOptions={categoryOptions}
           onSelectCategory={setSelectedCategory}
           onClose={() => setShowCategoryModal(false)}
+        />
+      )}
+
+      {showExportModal && (
+        <ExportModal
+          items={inventory}
+          categories={dbCategories}
+          onClose={() => setShowExportModal(false)}
         />
       )}
 
