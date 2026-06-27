@@ -58,11 +58,11 @@ export function Header({
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-extrabold tracking-tight text-stone-950">
-              Le Salengro
+              Superette Salengro
             </h1>
-            <p className="truncate text-[11px] font-medium text-stone-500">
+            {/* <p className="truncate text-[11px] font-medium text-stone-500">
               {email}
-            </p>
+            </p> */}
           </div>
 
           {/* Action icons: always reachable with the thumb, never wrap, never crowd the title */}
