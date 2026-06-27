@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useRef, TouchEvent } from "react";
 import { InventoryItem, CategoryItem } from "../types";
 import { Package, Plus, Minus, Trash2, AlertTriangle, Edit2, TrendingUp, TrendingDown } from "lucide-react";
+import { AnimatedQuantity } from "./AnimatedQuantity";
+import { isRecentTimestamp } from "../lib/utils";
 
 interface SwipeableItemProps {
   children: React.ReactNode;
@@ -98,10 +100,20 @@ export function InventoryGrid({
   onEditQuantity,
   onEditProduct,
 }: InventoryGridProps) {
+  const renderNewBadge = (item: InventoryItem) => {
+    if (!isRecentTimestamp(item.lastUpdated)) return null;
+
+    return (
+      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[9px] font-bold text-sky-700">
+        Nouveau
+      </span>
+    );
+  };
+
   const renderTrendBadge = (item: InventoryItem) => {
     if (!item.lastMovement || item.lastMovement === 0) return null;
 
-    const isRecent = Date.now() - item.lastUpdated < 24 * 60 * 60 * 1000;
+    const isRecent = isRecentTimestamp(item.lastUpdated);
     if (!isRecent) return null;
 
     if (item.lastMovement > 0) {
@@ -190,6 +202,7 @@ export function InventoryGrid({
                           >
                             {item.name}
                           </h4>
+                          {renderNewBadge(item)}
                           {item.brand && (
                             <span className="text-[10px] text-stone-500 font-medium truncate max-w-[80px]">
                               • {item.brand}
@@ -228,7 +241,7 @@ export function InventoryGrid({
                               item.quantity <= 5 ? "text-amber-600" : "text-stone-900"
                             }`}
                           >
-                            {item.quantity}
+                            <AnimatedQuantity value={item.quantity} />
                           </button>
 
                           <button
@@ -294,6 +307,7 @@ export function InventoryGrid({
                             </h4>
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            {renderNewBadge(item)}
                             {item.quantity <= 5 && (
                               <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700 animate-pulse">
                                 <AlertTriangle className="h-3 w-3" />
@@ -352,7 +366,7 @@ export function InventoryGrid({
                           }`}
                           title="Modifier directement le stock"
                         >
-                          {item.quantity}
+                          <AnimatedQuantity value={item.quantity} />
                         </button>
 
                         <button

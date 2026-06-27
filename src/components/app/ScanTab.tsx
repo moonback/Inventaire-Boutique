@@ -2,7 +2,9 @@ import { Loader2, Minus, Package, Plus, Sparkles } from "lucide-react";
 import { CameraBarcodeScanner } from "../CameraBarcodeScanner";
 import { ManualInput } from "../ManualInput";
 import { ScannerInputMode, ScannerInputModeToggle } from "../ScannerInputModeToggle";
+import { AnimatedQuantity } from "../AnimatedQuantity";
 import { InventoryItem } from "../../types";
+import { formatRelativeTime } from "../../lib/utils";
 
 type ScanTabProps = {
   isOnline: boolean;
@@ -151,6 +153,12 @@ function RecentScanItem({ item, onEditProduct, onEditQuantity, onUpdateQuantity 
             <span className="font-mono tabular">{item.barcode}</span>
             {item.brand && <span>• {item.brand}</span>}
           </div>
+          <p
+            className="mt-1 text-[10px] font-semibold text-stone-500"
+            title={new Date(item.lastUpdated).toLocaleString("fr-FR")}
+          >
+            Scanné {formatRelativeTime(item.lastUpdated)}
+          </p>
         </div>
       </div>
 
@@ -160,7 +168,7 @@ function RecentScanItem({ item, onEditProduct, onEditQuantity, onUpdateQuantity 
             <Minus className="h-2 w-2" />
           </button>
           <button onClick={() => onEditQuantity(item)} className={`px-1.5 min-w-6 text-center text-[10px] font-bold font-mono tabular py-0.5 hover:text-indigo-600 cursor-pointer ${item.quantity <= 5 ? "text-amber-600" : "text-stone-900"}`}>
-            {item.quantity}
+            <AnimatedQuantity value={item.quantity} />
           </button>
           <button onClick={() => onUpdateQuantity(item.barcode, 1)} className="grid h-6 w-6 place-items-center text-stone-500 active:scale-90 hover:text-stone-900 transition cursor-pointer" aria-label="Augmenter la quantité">
             <Plus className="h-2 w-2" />
