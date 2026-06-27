@@ -52,6 +52,7 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
   const streamRef = useRef<MediaStream | null>(null);
   const zxingControlsRef = useRef<{ stop: () => void } | null>(null);
   const scanLockRef = useRef(false);
+  const startLockRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -78,6 +79,7 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     scanLockRef.current = false;
+    startLockRef.current = false;
     setIsOpen(false);
     setIsStarting(false);
     setTorchSupported(false);
@@ -133,8 +135,13 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
   );
 
   const startCamera = useCallback(async (cameraId = selectedCameraId, forceRestart = false) => {
-    if (!canScan || isStarting || (isOpen && !forceRestart)) return;
+    if (!canScan || startLockRef.current || (streamRef.current && !forceRestart)) return;
 
+    if (forceRestart && streamRef.current) {
+      stopCamera();
+    }
+
+    startLockRef.current = true;
     setIsStarting(true);
     setError(null);
     setStatus("Demande d’autorisation caméra...");
@@ -159,9 +166,10 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
       streamRef.current = stream;
 
       const video = videoRef.current;
-      if (!video) return;
+      if (!video) {
+        throw new Error("Élément vidéo indisponible pour démarrer le scan caméra.");
+      }
       video.srcObject = stream;
-      await video.play();
 
       const [track] = stream.getVideoTracks();
       const activeCameraId = track?.getSettings().deviceId ?? cameraId ?? null;
@@ -174,6 +182,7 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
 
       const BarcodeDetector = getNativeBarcodeDetector();
       if (BarcodeDetector) {
+        await video.play();
         setEngine("native");
         setStatus("Scan caméra actif via BarcodeDetector.");
         detectWithNativeApi(new BarcodeDetector({ formats: BARCODE_FORMATS }));
@@ -195,9 +204,10 @@ export function CameraBarcodeScanner({ enabled, isBusy, onScan }: CameraBarcodeS
           : "Impossible d’activer la caméra. Vérifiez les permissions du navigateur.",
       );
     } finally {
+      startLockRef.current = false;
       setIsStarting(false);
     }
-  }, [canScan, detectWithNativeApi, emitScan, isOpen, isStarting, refreshVideoInputs, selectedCameraId, stopCamera]);
+  }, [canScan, detectWithNativeApi, emitScan, refreshVideoInputs, selectedCameraId, stopCamera]);
 
 
   const handleCameraSelection = useCallback(
